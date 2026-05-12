@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<title>Login</title>
+
+<style>
+body{
+  font-family:Arial;
+  background:#0f1115;
+  color:white;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  min-height:100vh;
+  margin:0;
+}
+
+.box{
+  background:#1b1f27;
+  padding:30px;
+  border-radius:14px;
+  width:320px;
+}
+
+input{
+  width:100%;
+  padding:12px;
+  margin:10px 0;
+  border:none;
+  border-radius:8px;
+  box-sizing:border-box;
+}
+
+button{
+  width:100%;
+  padding:12px;
+  border:none;
+  border-radius:8px;
+  background:#3b82f6;
+  color:white;
+  font-weight:bold;
+  cursor:pointer;
+  margin-top:8px;
+}
+
+.register-btn{
+  background:#16a34a;
+}
+
+hr{
+  border:0;
+  border-top:1px solid #374151;
+  margin:25px 0;
+}
+
+.small{
+  color:#9ca3af;
+  font-size:14px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="box">
+  <h1>Login</h1>
+
+  <input id="email" placeholder="Email">
+  <input id="password" type="password" placeholder="Lösenord">
+
+  <button onclick="login()">Logga in</button>
+
+  <hr>
+
+  <h2>Registrera</h2>
+  <p class="small">Skapa ett nytt konto. Det blir customer som standard.</p>
+
+  <input id="registerEmail" placeholder="Email">
+  <input id="registerPassword" type="password" placeholder="Lösenord">
+
+  <button class="register-btn" onclick="registerUser()">Registrera</button>
+</div>
+
+<script>
+const API_BASE = "https://kronofogden-backend.onrender.com";
+const LOGIN_URL = `${API_BASE}/api/login`;
+const REGISTER_URL = `${API_BASE}/api/register`;
+
+async function login(){
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+
+  if(!email || !password){
+    alert("Fyll i email och lösenord");
+    return;
+  }
+
+  try {
+    const res = await fetch(LOGIN_URL,{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        email,
+        password
+      })
+    });
+
+    const data = await res.json();
+
+    if(!res.ok){
+      alert(data.message || "Login misslyckades");
+      return;
+    }
+
+    localStorage.setItem("token", data.token);
+    localStorage.setItem("userId", data.userId);
+    localStorage.setItem("isAdmin", data.isAdmin);
+
+    if(data.isAdmin){
+      window.location.href = "admin.html";
+    } else {
+      window.location.href = "customer.html";
+    }
+  } catch (error) {
+    console.error(error);
+    alert("Kunde inte ansluta till servern");
+  }
+}
+
+async function registerUser(){
+  const email = document.getElementById("registerEmail").value;
+  const password = document.getElementById("registerPassword").value;
+
+  if(!email || !password){
+    alert("Fyll i email och lösenord");
+    return;
+  }
+
+  try {
+    const res = await fetch(REGISTER_URL,{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        email,
+        password,
+        isAdmin:false
+      })
+    });
+
+    const data = await res.json();
+
+    if(!res.ok){
+      alert(data.message || "Registrering misslyckades");
+      return;
+    }
+
+    alert("Konto skapat! Nu kan du logga in.");
+    document.getElementById("email").value = email;
+    document.getElementById("password").value = password;
+  } catch (error) {
+    console.error(error);
+    alert("Kunde inte ansluta till servern");
+  }
+}
+</script>
+
+</body>
+</html>

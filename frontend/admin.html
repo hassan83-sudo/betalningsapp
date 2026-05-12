@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Admin Dashboard - BetalningsApp</title>
+
+<style>
+:root {
+  --bg: #0f1115;
+  --card: #1b1f27;
+  --card2: #111827;
+  --text: #ffffff;
+  --muted: #9ca3af;
+  --blue: #3b82f6;
+  --green: #22c55e;
+  --red: #ef4444;
+  --yellow: #f59e0b;
+  --border: #2d3748;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.container {
+  max-width: 1200px;
+  margin: auto;
+  padding: 24px;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 20px;
+  margin-bottom: 18px;
+}
+
+.grid {
+  display: grid;
+  gap: 16px;
+}
+
+.grid-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.grid-2 {
+  grid-template-columns: 1fr 1fr;
+}
+
+.stat h3 {
+  color: var(--muted);
+  font-size: 14px;
+  margin: 0 0 10px;
+}
+
+.stat p {
+  font-size: 26px;
+  font-weight: bold;
+  margin: 0;
+}
+
+input, select {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card2);
+  color: var(--text);
+  margin-bottom: 12px;
+}
+
+button {
+  border: none;
+  border-radius: 12px;
+  padding: 11px 14px;
+  cursor: pointer;
+  font-weight: bold;
+  color: white;
+}
+
+.btn-blue {
+  background: var(--blue);
+}
+
+.btn-green {
+  background: var(--green);
+}
+
+.btn-red {
+  background: var(--red);
+}
+
+.btn-gray {
+  background: #374151;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.badge {
+  display: inline-block;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: bold;
+}
+
+.badge-paid {
+  background: #14532d;
+  color: #86efac;
+}
+
+.badge-unpaid {
+  background: #78350f;
+  color: #fde68a;
+}
+
+.invoice {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr 1fr auto;
+  gap: 12px;
+  align-items: center;
+  background: var(--card2);
+  border: 1px solid var(--border);
+  padding: 14px;
+  border-radius: 14px;
+  margin-bottom: 12px;
+}
+
+.small {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+h1, h2 {
+  margin-top: 0;
+}
+
+.hidden {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .grid-4,
+  .grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .invoice {
+    grid-template-columns: 1fr;
+  }
+
+  .topbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <div class="topbar card">
+    <div>
+      <h1>Admin Dashboard</h1>
+      <p class="small">Hantera kunder, fakturor och betalstatus.</p>
+    </div>
+
+    <div class="actions">
+      <button class="btn-blue" onclick="loadInvoices()">Uppdatera</button>
+      <button class="btn-gray" onclick="logout()">Logga ut</button>
+    </div>
+  </div>
+
+  <div class="grid grid-4">
+    <div class="card stat">
+      <h3>Totalt fakturerat</h3>
+      <p id="totalAmount">0 kr</p>
+    </div>
+
+    <div class="card stat">
+      <h3>Obetalt</h3>
+      <p id="unpaidAmount">0 kr</p>
+    </div>
+
+    <div class="card stat">
+      <h3>Betalt</h3>
+      <p id="paidAmount">0 kr</p>
+    </div>
+
+    <div class="card stat">
+      <h3>Antal fakturor</h3>
+      <p id="invoiceCount">0</p>
+    </div>
+  </div>
+
+  <div class="grid grid-2">
+
+    <div class="card">
+      <h2>Skapa faktura</h2>
+
+      <input id="userId" placeholder="User ID från Atlas" />
+      <input id="name" placeholder="Fakturanamn / Kund / Företag" />
+      <input id="amount" type="number" placeholder="Belopp" />
+      <input id="monthlyPayment" type="number" placeholder="Månadsbetalning" />
+      <input id="deadline" type="date" />
+
+      <button class="btn-green" onclick="createInvoice()">Skapa faktura</button>
+    </div>
+
+    <div class="card">
+      <h2>Filter</h2>
+
+      <input id="searchInput" placeholder="Sök faktura, userId eller ID" oninput="renderInvoices()" />
+
+      <select id="statusFilter" onchange="renderInvoices()">
+        <option value="all">Alla fakturor</option>
+        <option value="paid">Endast betalda</option>
+        <option value="unpaid">Endast obetalda</option>
+      </select>
+
+      <select id="sortFilter" onchange="renderInvoices()">
+        <option value="newest">Nyast först</option>
+        <option value="oldest">Äldst först</option>
+        <option value="amountHigh">Högst belopp</option>
+        <option value="amountLow">Lägst belopp</option>
+      </select>
+    </div>
+
+  </div>
+
+  <div class="card">
+    <h2>Fakturor</h2>
+    <div id="invoiceList"></div>
+  </div>
+
+</div>
+
+<script>
+const API_URL = "https://kronofogden-backend.onrender.com/api/invoices";
+
+let allInvoices = [];
+
+function getToken() {
+  return localStorage.getItem("token");
+}
+
+function isAdmin() {
+  return localStorage.getItem("isAdmin") === "true";
+}
+
+if (!getToken()) {
+  alert("Du är inte inloggad");
+  window.location.href = "login.html";
+}
+
+if (!isAdmin()) {
+  alert("Du måste vara admin för att komma in här");
+  window.location.href = "customer.html";
+}
+
+function formatKr(value) {
+  return Number(value || 0).toLocaleString("sv-SE") + " kr";
+}
+
+function formatDate(value) {
+  if (!value) return "Ingen deadline";
+  return new Date(value).toLocaleDateString("sv-SE");
+}
+
+function updateStats(invoices) {
+  const total = invoices.reduce((sum, i) => sum + Number(i.amount || 0), 0);
+
+  const unpaid = invoices
+    .filter(i => !i.paid)
+    .reduce((sum, i) => sum + Number(i.amount || 0), 0);
+
+  const paid = invoices
+    .filter(i => i.paid)
+    .reduce((sum, i) => sum + Number(i.amount || 0), 0);
+
+  document.getElementById("totalAmount").textContent = formatKr(total);
+  document.getElementById("unpaidAmount").textContent = formatKr(unpaid);
+  document.getElementById("paidAmount").textContent = formatKr(paid);
+  document.getElementById("invoiceCount").textContent = invoices.length;
+}
+
+async function loadInvoices() {
+  try {
+    const res = await fetch(API_URL, {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${getToken()}`,
+        "Content-Type": "application/json"
+      }
+    });
+
+    if (res.status === 401) {
+      localStorage.clear();
+      alert("Sessionen har gått ut. Logga in igen.");
+      window.location.href = "login.html";
+      return;
+    }
+
+    if (!res.ok) {
+      throw new Error("Kunde inte hämta fakturor");
+    }
+
+    allInvoices = await res.json();
+
+    updateStats(allInvoices);
+    renderInvoices();
+
+  } catch (error) {
+    console.error(error);
+    alert("Kunde inte hämta fakturor");
+  }
+}
+
+function renderInvoices() {
+  const list = document.getElementById("invoiceList");
+  const search = document.getElementById("searchInput").value.toLowerCase();
+  const status = document.getElementById("statusFilter").value;
+  const sort = document.getElementById("sortFilter").value;
+
+  let invoices = [...allInvoices];
+
+  if (status === "paid") {
+    invoices = invoices.filter(i => i.paid);
+  }
+
+  if (status === "unpaid") {
+    invoices = invoices.filter(i => !i.paid);
+  }
+
+  if (search) {
+    invoices = invoices.filter(i => {
+      return (
+        String(i.name || "").toLowerCase().includes(search) ||
+        String(i.userId || "").toLowerCase().includes(search) ||
+        String(i._id || "").toLowerCase().includes(search) ||
+        String(i.invoiceNumber || "").toLowerCase().includes(search)
+      );
+    });
+  }
+
+  if (sort === "newest") {
+    invoices.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  }
+
+  if (sort === "oldest") {
+    invoices.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+  }
+
+  if (sort === "amountHigh") {
+    invoices.sort((a, b) => Number(b.amount || 0) - Number(a.amount || 0));
+  }
+
+  if (sort === "amountLow") {
+    invoices.sort((a, b) => Number(a.amount || 0) - Number(b.amount || 0));
+  }
+
+  if (invoices.length === 0) {
+    list.innerHTML = `<p class="small">Inga fakturor hittades.</p>`;
+    return;
+  }
+
+  list.innerHTML = invoices.map(invoice => `
+    <div class="invoice">
+      <div>
+        <strong>${invoice.name || "Faktura"}</strong>
+        <div class="small">Faktura: ${invoice.invoiceNumber || invoice._id}</div>
+        <div class="small">User ID: ${invoice.userId || "-"}</div>
+      </div>
+
+      <div>
+        <strong>${formatKr(invoice.amount)}</strong>
+        <div class="small">Månadsvis: ${formatKr(invoice.monthlyPayment)}</div>
+      </div>
+
+      <div>
+        <span class="badge ${invoice.paid ? "badge-paid" : "badge-unpaid"}">
+          ${invoice.paid ? "Betald" : "Obetald"}
+        </span>
+      </div>
+
+      <div>
+        <div class="small">Deadline</div>
+        <strong>${formatDate(invoice.deadline)}</strong>
+      </div>
+
+      <div class="actions">
+        ${
+          !invoice.paid
+            ? `<button class="btn-blue" onclick="markPaid('${invoice._id}')">Markera betald</button>`
+            : ""
+        }
+        <button class="btn-red" onclick="deleteInvoice('${invoice._id}')">Ta bort</button>
+      </div>
+    </div>
+  `).join("");
+}
+
+async function createInvoice() {
+  const userId = document.getElementById("userId").value.trim();
+  const name = document.getElementById("name").value.trim();
+  const amount = Number(document.getElementById("amount").value);
+  const monthlyPayment = Number(document.getElementById("monthlyPayment").value || 0);
+  const deadline = document.getElementById("deadline").value;
+
+  if (!userId || !name || !amount) {
+    alert("User ID, fakturanamn och belopp krävs");
+    return;
+  }
+
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${getToken()}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        userId,
+        name,
+        amount,
+        monthlyPayment,
+        deadline
+      })
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      alert(data.message || "Kunde inte skapa faktura");
+      return;
+    }
+
+    alert("Faktura skapad");
+
+    document.getElementById("userId").value = "";
+    document.getElementById("name").value = "";
+    document.getElementById("amount").value = "";
+    document.getElementById("monthlyPayment").value = "";
+    document.getElementById("deadline").value = "";
+
+    loadInvoices();
+
+  } catch (error) {
+    console.error(error);
+    alert("Kunde inte skapa faktura");
+  }
+}
+
+async function markPaid(id) {
+  if (!confirm("Markera fakturan som betald?")) return;
+
+  try {
+    const res = await fetch(`${API_URL}/pay/${id}`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${getToken()}`,
+        "Content-Type": "application/json"
+      }
+    });
+
+    if (!res.ok) {
+      throw new Error("Kunde inte markera betald");
+    }
+
+    loadInvoices();
+
+  } catch (error) {
+    console.error(error);
+    alert("Kunde inte markera fakturan som betald");
+  }
+}
+
+async function deleteInvoice(id) {
+  if (!confirm("Vill du ta bort fakturan?")) return;
+
+  try {
+    const res = await fetch(`${API_URL}/${id}`, {
+      method: "DELETE",
+      headers: {
+        "Authorization": `Bearer ${getToken()}`,
+        "Content-Type": "application/json"
+      }
+    });
+
+    if (!res.ok) {
+      throw new Error("Kunde inte ta bort faktura");
+    }
+
+    loadInvoices();
+
+  } catch (error) {
+    console.error(error);
+    alert("Kunde inte ta bort faktura");
+  }
+}
+
+function logout() {
+  localStorage.clear();
+  window.location.href = "login.html";
+}
+
+loadInvoices();
+</script>
+
+</body>
+</html>
