@@ -9,14 +9,61 @@ import {
 import { useEffect, useState } from "react";
 import api from "./api";
 
+function isLoggedIn() {
+  return !!localStorage.getItem("token");
+}
+
+function isAdminUser() {
+  return localStorage.getItem("isAdmin") === "true";
+}
+
+function ProtectedCustomer({ children }) {
+  if (!isLoggedIn()) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return children;
+}
+
+function ProtectedAdmin({ children }) {
+  if (!isLoggedIn()) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (!isAdminUser()) {
+    return <Navigate to="/customer" replace />;
+  }
+
+  return children;
+}
+
 function App() {
   return (
     <Routes>
       <Route path="/" element={<Navigate to="/login" />} />
+
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
-      <Route path="/customer" element={<Customer />} />
-      <Route path="/admin" element={<Admin />} />
+
+      <Route
+        path="/customer"
+        element={
+          <ProtectedCustomer>
+            <Customer />
+          </ProtectedCustomer>
+        }
+      />
+
+      <Route
+        path="/admin"
+        element={
+          <ProtectedAdmin>
+            <Admin />
+          </ProtectedAdmin>
+        }
+      />
+
+      <Route path="*" element={<Navigate to="/login" />} />
     </Routes>
   );
 }
@@ -38,14 +85,13 @@ function Login() {
 
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("userId", res.data.userId);
-      localStorage.setItem("isAdmin", res.data.isAdmin);
+      localStorage.setItem("isAdmin", String(res.data.isAdmin));
 
       if (res.data.isAdmin) {
         navigate("/admin");
       } else {
         navigate("/customer");
       }
-
     } catch (err) {
       alert(err.response?.data?.message || "Login failed");
     }
@@ -100,7 +146,6 @@ function Register() {
 
       alert("Konto skapat");
       navigate("/login");
-
     } catch (err) {
       alert(err.response?.data?.message || "Register failed");
     }
@@ -131,7 +176,6 @@ function Register() {
             checked={isAdmin}
             onChange={(e) => setIsAdmin(e.target.checked)}
           />
-
           Admin
         </label>
 
@@ -148,14 +192,12 @@ function Register() {
 
 function Customer() {
   const navigate = useNavigate();
-
   const [invoices, setInvoices] = useState([]);
 
   async function loadInvoices() {
     try {
       const res = await api.get("/api/invoices");
       setInvoices(res.data);
-
     } catch {
       alert("Kunde inte hämta fakturor");
     }
@@ -165,7 +207,6 @@ function Customer() {
     try {
       await api.post(`/api/invoices/pay/${id}`);
       loadInvoices();
-
     } catch (err) {
       alert(err.response?.data?.message || "Betalning misslyckades");
     }
@@ -184,36 +225,27 @@ function Customer() {
     <div className="page">
       <nav className="navbar">
         <h2>Customer Dashboard</h2>
-
-        <button onClick={logout}>
-          Logga ut
-        </button>
+        <button onClick={logout}>Logga ut</button>
       </nav>
 
       <div className="container">
         <div className="grid">
+          {invoices.length === 0 && (
+            <div className="card">
+              <h2>Inga fakturor</h2>
+              <p>Du har inga fakturor just nu.</p>
+            </div>
+          )}
+
           {invoices.map((invoice) => (
             <div className="card" key={invoice._id}>
               <h2>{invoice.name}</h2>
-
-              <p>
-                Faktura: {invoice.invoiceNumber}
-              </p>
-
-              <p>
-                Belopp: {invoice.amount} kr
-              </p>
-
-              <p>
-                Status:
-                {" "}
-                {invoice.paid ? "Betald" : "Obetald"}
-              </p>
+              <p>Faktura: {invoice.invoiceNumber}</p>
+              <p>Belopp: {invoice.amount} kr</p>
+              <p>Status: {invoice.paid ? "Betald" : "Obetald"}</p>
 
               {!invoice.paid && (
-                <button
-                  onClick={() => payInvoice(invoice._id)}
-                >
+                <button onClick={() => payInvoice(invoice._id)}>
                   Betala
                 </button>
               )}
@@ -229,7 +261,6 @@ function Admin() {
   const navigate = useNavigate();
 
   const [invoices, setInvoices] = useState([]);
-
   const [userId, setUserId] = useState("");
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
@@ -238,7 +269,6 @@ function Admin() {
     try {
       const res = await api.get("/api/invoices");
       setInvoices(res.data);
-
     } catch {
       alert("Kunde inte hämta fakturor");
     }
@@ -259,7 +289,6 @@ function Admin() {
       setAmount("");
 
       loadInvoices();
-
     } catch (err) {
       alert(err.response?.data?.message || "Kunde inte skapa faktura");
     }
@@ -269,7 +298,6 @@ function Admin() {
     try {
       await api.delete(`/api/invoices/${id}`);
       loadInvoices();
-
     } catch {
       alert("Delete failed");
     }
@@ -288,18 +316,11 @@ function Admin() {
     <div className="page">
       <nav className="navbar">
         <h2>Admin Dashboard</h2>
-
-        <button onClick={logout}>
-          Logga ut
-        </button>
+        <button onClick={logout}>Logga ut</button>
       </nav>
 
       <div className="container">
-
-        <form
-          className="card form"
-          onSubmit={createInvoice}
-        >
+        <form className="card form" onSubmit={createInvoice}>
           <h2>Skapa faktura</h2>
 
           <input
@@ -321,35 +342,17 @@ function Admin() {
             onChange={(e) => setAmount(e.target.value)}
           />
 
-          <button type="submit">
-            Skapa faktura
-          </button>
+          <button type="submit">Skapa faktura</button>
         </form>
 
         <div className="grid">
           {invoices.map((invoice) => (
             <div className="card" key={invoice._id}>
               <h2>{invoice.name}</h2>
-
               <p>User: {invoice.userId}</p>
-
-              <p>
-                Faktura:
-                {" "}
-                {invoice.invoiceNumber}
-              </p>
-
-              <p>
-                Belopp:
-                {" "}
-                {invoice.amount} kr
-              </p>
-
-              <p>
-                Status:
-                {" "}
-                {invoice.paid ? "Betald" : "Obetald"}
-              </p>
+              <p>Faktura: {invoice.invoiceNumber}</p>
+              <p>Belopp: {invoice.amount} kr</p>
+              <p>Status: {invoice.paid ? "Betald" : "Obetald"}</p>
 
               <button
                 className="danger"
@@ -360,7 +363,6 @@ function Admin() {
             </div>
           ))}
         </div>
-
       </div>
     </div>
   );
