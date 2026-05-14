@@ -102,6 +102,10 @@ button:hover {
   background: #dc2626;
 }
 
+.secondary {
+  background: #4b5563;
+}
+
 @media (max-width: 600px) {
   .container {
     padding: 16px;

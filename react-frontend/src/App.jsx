@@ -203,7 +203,21 @@ function Customer() {
     }
   }
 
-  async function payInvoice(id) {
+  async function payWithStripe(id) {
+    try {
+      const res = await api.post(`/api/invoices/${id}/create-checkout-session`);
+
+      if (res.data.url) {
+        window.location.href = res.data.url;
+      } else {
+        alert("Stripe URL saknas");
+      }
+    } catch (err) {
+      alert(err.response?.data?.message || "Kunde inte starta Stripe-betalning");
+    }
+  }
+
+  async function payManual(id) {
     try {
       await api.post(`/api/invoices/pay/${id}`);
       loadInvoices();
@@ -245,9 +259,18 @@ function Customer() {
               <p>Status: {invoice.paid ? "Betald" : "Obetald"}</p>
 
               {!invoice.paid && (
-                <button onClick={() => payInvoice(invoice._id)}>
-                  Betala
-                </button>
+                <>
+                  <button onClick={() => payWithStripe(invoice._id)}>
+                    Betala med kort
+                  </button>
+
+                  <button
+                    className="secondary"
+                    onClick={() => payManual(invoice._id)}
+                  >
+                    Markera som betald
+                  </button>
+                </>
               )}
             </div>
           ))}
