@@ -18,22 +18,13 @@ function isAdminUser() {
 }
 
 function ProtectedCustomer({ children }) {
-  if (!isLoggedIn()) {
-    return <Navigate to="/login" replace />;
-  }
-
+  if (!isLoggedIn()) return <Navigate to="/login" replace />;
   return children;
 }
 
 function ProtectedAdmin({ children }) {
-  if (!isLoggedIn()) {
-    return <Navigate to="/login" replace />;
-  }
-
-  if (!isAdminUser()) {
-    return <Navigate to="/customer" replace />;
-  }
-
+  if (!isLoggedIn()) return <Navigate to="/login" replace />;
+  if (!isAdminUser()) return <Navigate to="/customer" replace />;
   return children;
 }
 
@@ -41,7 +32,6 @@ function App() {
   return (
     <Routes>
       <Route path="/" element={<Navigate to="/login" />} />
-
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
 
@@ -70,7 +60,6 @@ function App() {
 
 function Login() {
   const navigate = useNavigate();
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -78,20 +67,13 @@ function Login() {
     e.preventDefault();
 
     try {
-      const res = await api.post("/api/login", {
-        email,
-        password,
-      });
+      const res = await api.post("/api/login", { email, password });
 
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("userId", res.data.userId);
       localStorage.setItem("isAdmin", String(res.data.isAdmin));
 
-      if (res.data.isAdmin) {
-        navigate("/admin");
-      } else {
-        navigate("/customer");
-      }
+      navigate(res.data.isAdmin ? "/admin" : "/customer");
     } catch (err) {
       alert(err.response?.data?.message || "Login failed");
     }
@@ -129,7 +111,6 @@ function Login() {
 
 function Register() {
   const navigate = useNavigate();
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
@@ -138,12 +119,7 @@ function Register() {
     e.preventDefault();
 
     try {
-      await api.post("/api/register", {
-        email,
-        password,
-        isAdmin,
-      });
-
+      await api.post("/api/register", { email, password, isAdmin });
       alert("Konto skapat");
       navigate("/login");
     } catch (err) {
@@ -226,6 +202,37 @@ function Customer() {
     }
   }
 
+  async function downloadPdf(id) {
+    try {
+      const token = localStorage.getItem("token");
+
+      const res = await fetch(`http://localhost:3000/api/invoices/${id}/pdf`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) {
+        alert("Kunde inte ladda ner PDF");
+        return;
+      }
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "faktura.pdf";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+
+      window.URL.revokeObjectURL(url);
+    } catch {
+      alert("PDF nedladdning misslyckades");
+    }
+  }
+
   function logout() {
     localStorage.clear();
     navigate("/login");
@@ -257,6 +264,10 @@ function Customer() {
               <p>Faktura: {invoice.invoiceNumber}</p>
               <p>Belopp: {invoice.amount} kr</p>
               <p>Status: {invoice.paid ? "Betald" : "Obetald"}</p>
+
+              <button className="secondary" onClick={() => downloadPdf(invoice._id)}>
+                Ladda ner PDF
+              </button>
 
               {!invoice.paid && (
                 <>
@@ -326,6 +337,37 @@ function Admin() {
     }
   }
 
+  async function downloadPdf(id) {
+    try {
+      const token = localStorage.getItem("token");
+
+      const res = await fetch(`http://localhost:3000/api/invoices/${id}/pdf`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) {
+        alert("Kunde inte ladda ner PDF");
+        return;
+      }
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "faktura.pdf";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+
+      window.URL.revokeObjectURL(url);
+    } catch {
+      alert("PDF nedladdning misslyckades");
+    }
+  }
+
   function logout() {
     localStorage.clear();
     navigate("/login");
@@ -376,6 +418,10 @@ function Admin() {
               <p>Faktura: {invoice.invoiceNumber}</p>
               <p>Belopp: {invoice.amount} kr</p>
               <p>Status: {invoice.paid ? "Betald" : "Obetald"}</p>
+
+              <button className="secondary" onClick={() => downloadPdf(invoice._id)}>
+                Ladda ner PDF
+              </button>
 
               <button
                 className="danger"
