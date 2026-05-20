@@ -1,106 +1,13 @@
 <!DOCTYPE html>
 <html lang="sv">
-<head>
-<meta charset="UTF-8">
-<title>BetalningsApp MVP</title>
-</head>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>KronoPay</title>
+  </head>
 
-<body>
-
-<h1>💳 Mina fakturor</h1>
-
-<h2 id="heroTotalDebt">0 kr</h2>
-<p id="overviewText">Du har betalat 0 av 0 fakturor</p>
-
-<input id="name" placeholder="Kund / företag">
-<input id="amount" type="number" placeholder="Fakturabelopp">
-<input id="monthlyPayment" type="number" placeholder="Månadsbetalning">
-
-<select id="priority">
-  <option value="high">Hög</option>
-  <option value="medium" selected>Medel</option>
-  <option value="low">Låg</option>
-</select>
-
-<button onclick="saveInvoice()">Spara faktura</button>
-
-<ul id="debtList"></ul>
-
-<script>
-const API_URL = "http://localhost:3000/api/invoices";
-
-function formatKr(value) {
-  return Number(value || 0).toLocaleString("sv-SE") + " kr";
-}
-
-function loadInvoices() {
-  fetch(API_URL)
-    .then(res => res.json())
-    .then(data => {
-      const list = document.getElementById("debtList");
-      list.innerHTML = "";
-
-      const total = data.reduce((sum, invoice) => sum + Number(invoice.amount || 0), 0);
-      const paid = data.filter(invoice => invoice.paid).length;
-
-      document.getElementById("heroTotalDebt").textContent = formatKr(total);
-      document.getElementById("overviewText").textContent =
-        `Du har betalat ${paid} av ${data.length} fakturor`;
-
-      data.forEach(invoice => {
-        const li = document.createElement("li");
-
-        li.innerHTML = `
-          <strong>${invoice.name}</strong><br>
-          ${formatKr(invoice.amount)}<br>
-          ${invoice.paid ? "Betald" : "Ej betald"}
-          ${invoice.requestedMoreTime ? " • Väntar på svar" : ""}
-          <br>
-          ${!invoice.paid ? `<button onclick="payInvoice('${invoice._id}')">Betala nu</button>` : ""}
-          ${!invoice.paid ? `<button onclick="requestMoreTime('${invoice._id}')">Mer tid</button>` : ""}
-          <button onclick="deleteInvoice('${invoice._id}')">Ta bort</button>
-          <hr>
-        `;
-
-        list.appendChild(li);
-      });
-    })
-    .catch(err => {
-      console.error(err);
-      alert("Kunde inte hämta fakturor");
-    });
-}
-
-function saveInvoice() {
-  const name = document.getElementById("name").value;
-  const amount = document.getElementById("amount").value;
-  const monthlyPayment = document.getElementById("monthlyPayment").value;
-  const priority = document.getElementById("priority").value;
-
-  fetch(API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, amount, monthlyPayment, priority })
-  }).then(() => loadInvoices());
-}
-
-function payInvoice(id) {
-  fetch(`${API_URL}/pay/${id}`, { method: "POST" })
-    .then(() => loadInvoices());
-}
-
-function requestMoreTime(id) {
-  fetch(`${API_URL}/request-time/${id}`, { method: "POST" })
-    .then(() => loadInvoices());
-}
-
-function deleteInvoice(id) {
-  fetch(`${API_URL}/${id}`, { method: "DELETE" })
-    .then(() => loadInvoices());
-}
-
-loadInvoices();
-</script>
-
-</body>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
 </html>
