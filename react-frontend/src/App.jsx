@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 
-const API_URL = "http://localhost:3000";
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  "http://localhost:3000";
 
 export default function App() {
   const [invoices, setInvoices] = useState([]);
@@ -177,9 +179,10 @@ export default function App() {
       invoice.paid ? "Betald" : "Obetald",
     ]);
 
-    const csvContent = [headers.join(","), ...rows.map((row) => row.join(","))].join(
-      "\n"
-    );
+    const csvContent = [
+      headers.join(","),
+      ...rows.map((row) => row.join(",")),
+    ].join("\n");
 
     const blob = new Blob([csvContent], {
       type: "text/csv;charset=utf-8;",
