@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from "react";
+import Customers from "./pages/Customers";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 export default function App() {
+  const [page, setPage] = useState("dashboard");
   const [invoices, setInvoices] = useState([]);
   const [publicInvoice, setPublicInvoice] = useState(null);
   const [message, setMessage] = useState("");
@@ -10,6 +12,7 @@ export default function App() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
   const [token, setToken] = useState(localStorage.getItem("token") || "");
+
   const [authMode, setAuthMode] = useState("login");
 
   const [authForm, setAuthForm] = useState({
@@ -36,21 +39,6 @@ export default function App() {
     async function init() {
       const params = new URLSearchParams(window.location.search);
       const invoiceId = params.get("invoice");
-      const paidId = params.get("paid");
-      const cancelled = params.get("cancelled");
-
-      if (paidId) {
-        await fetch(`${API_URL}/api/invoices/${paidId}/pay`, {
-          method: "PATCH",
-        });
-        setMessage("Stripe-betalning klar.");
-        window.history.replaceState({}, "", window.location.pathname);
-      }
-
-      if (cancelled) {
-        setMessage("Stripe-betalning avbröts.");
-        window.history.replaceState({}, "", window.location.pathname);
-      }
 
       if (invoiceId) {
         const res = await fetch(`${API_URL}/api/public/invoice/${invoiceId}`);
@@ -112,12 +100,10 @@ export default function App() {
     e.preventDefault();
 
     const payload = {
-      name: form.customerName,
       customerName: form.customerName,
       customerEmail: form.customerEmail,
       amount: Number(form.amount),
       deadline: form.deadline,
-      dueDate: form.deadline,
     };
 
     const res = await fetch(`${API_URL}/api/invoices`, {
@@ -141,91 +127,6 @@ export default function App() {
     });
 
     fetchInvoices();
-  }
-
-  async function payWithStripe(id) {
-    const res = await fetch(
-      `${API_URL}/api/invoices/${id}/create-checkout-session`,
-      { method: "POST" }
-    );
-
-    const data = await res.json();
-
-    if (data.url) {
-      window.location.href = data.url;
-    } else {
-      setMessage("Stripe-länk kunde inte skapas");
-    }
-  }
-
-  async function markPaid(id) {
-    await fetch(`${API_URL}/api/invoices/${id}/pay`, {
-      method: "PATCH",
-    });
-
-    setMessage("Faktura markerad som betald");
-    fetchInvoices();
-  }
-
-  async function sendReminder(id) {
-    const res = await fetch(`${API_URL}/api/invoices/${id}/send-reminder`, {
-      method: "POST",
-    });
-
-    setMessage(res.ok ? "Påminnelse skickad" : "Påminnelse misslyckades");
-  }
-
-  async function sendAllReminders() {
-    const res = await fetch(`${API_URL}/api/invoices/send-reminders`, {
-      method: "POST",
-    });
-
-    setMessage(res.ok ? "Alla påminnelser skickade" : "Kunde inte skicka alla");
-  }
-
-  async function deleteInvoice(id) {
-    await fetch(`${API_URL}/api/invoices/${id}`, {
-      method: "DELETE",
-    });
-
-    setMessage("Faktura borttagen");
-    fetchInvoices();
-  }
-
-  function openPdf(id) {
-    window.open(`${API_URL}/api/invoices/${id}/pdf`, "_blank");
-  }
-
-  function copyCustomerLink(id) {
-    const url = `${window.location.origin}/?invoice=${id}`;
-    navigator.clipboard.writeText(url);
-    setMessage("Kundlänk kopierad");
-  }
-
-  function exportCSV() {
-    const headers = ["Kund", "Email", "Belopp", "Förfallodatum", "Status"];
-
-    const rows = invoices.map((invoice) => [
-      invoice.customerName || invoice.name || "",
-      invoice.customerEmail || "",
-      invoice.amount || 0,
-      invoice.deadline || invoice.dueDate || "",
-      invoice.paid ? "Betald" : "Obetald",
-    ]);
-
-    const csv = [headers.join(","), ...rows.map((row) => row.join(","))].join(
-      "\n"
-    );
-
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-
-    link.href = url;
-    link.setAttribute("download", "kronopay-fakturor.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
   }
 
   const totalAmount = invoices.reduce(
@@ -252,7 +153,7 @@ export default function App() {
   };
 
   const filteredInvoices = invoices.filter((invoice) => {
-    const name = invoice.customerName || invoice.name || "";
+    const name = invoice.customerName || "";
     const email = invoice.customerEmail || "";
 
     const matchesSearch =
@@ -267,90 +168,8 @@ export default function App() {
     return matchesSearch && matchesFilter;
   });
 
-  if (publicInvoice) {
-    return (
-      <div style={publicPage}>
-        <div style={publicCard}>
-          <div style={logo}>KronoPay</div>
-          <h1 style={publicTitle}>{publicInvoice.customerName}</h1>
-
-          <div style={publicInfo}>
-            <p>
-              <strong>Belopp:</strong> {publicInvoice.amount} kr
-            </p>
-            <p>
-              <strong>Förfallodatum:</strong> {publicInvoice.deadline || "-"}
-            </p>
-            <p>
-              <strong>Status:</strong>{" "}
-              {publicInvoice.paid ? "Betald" : "Obetald"}
-            </p>
-          </div>
-
-          {!publicInvoice.paid && (
-            <button
-              onClick={() => payWithStripe(publicInvoice._id)}
-              style={payButton}
-            >
-              Betala med Stripe
-            </button>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  if (!token) {
-    return (
-      <div style={publicPage}>
-        <div style={publicCard}>
-          <div style={logo}>KronoPay</div>
-
-          <h1 style={publicTitle}>
-            {authMode === "login" ? "Logga in" : "Skapa konto"}
-          </h1>
-
-          <form onSubmit={handleAuth}>
-            <input
-              type="email"
-              placeholder="Email"
-              value={authForm.email}
-              onChange={(e) =>
-                setAuthForm({ ...authForm, email: e.target.value })
-              }
-              style={input}
-              required
-            />
-
-            <input
-              type="password"
-              placeholder="Lösenord"
-              value={authForm.password}
-              onChange={(e) =>
-                setAuthForm({ ...authForm, password: e.target.value })
-              }
-              style={input}
-              required
-            />
-
-            <button style={primaryButton}>
-              {authMode === "login" ? "Logga in" : "Registrera"}
-            </button>
-          </form>
-
-          <button
-            onClick={() =>
-              setAuthMode(authMode === "login" ? "register" : "login")
-            }
-            style={secondaryFullButton}
-          >
-            {authMode === "login" ? "Skapa konto" : "Har redan konto?"}
-          </button>
-
-          {showMessage && <div style={messageBox}>{message}</div>}
-        </div>
-      </div>
-    );
+  if (page === "customers") {
+    return <Customers />;
   }
 
   return (
@@ -366,21 +185,20 @@ export default function App() {
         </div>
 
         <nav style={nav}>
-          <div style={navItemActive}>Dashboard</div>
-          <div style={navItem}>Fakturor</div>
-          <div style={navItem}>Kunder</div>
-          <div style={navItem}>Rapporter</div>
-        </nav>
+          <div
+            onClick={() => setPage("dashboard")}
+            style={page === "dashboard" ? navItemActive : navItem}
+          >
+            Dashboard
+          </div>
 
-        <button
-          onClick={() => {
-            localStorage.removeItem("token");
-            setToken("");
-          }}
-          style={logoutButton}
-        >
-          Logout
-        </button>
+          <div
+            onClick={() => setPage("customers")}
+            style={page === "customers" ? navItemActive : navItem}
+          >
+            Kunder
+          </div>
+        </nav>
       </aside>
 
       <main style={main}>
@@ -389,19 +207,7 @@ export default function App() {
             <h1 style={pageTitle}>Dashboard</h1>
             <p style={pageSub}>Fakturor, kundlänkar och betalningar</p>
           </div>
-
-          <div style={headerActions}>
-            <button onClick={fetchInvoices} style={topButton}>
-              Uppdatera
-            </button>
-
-            <button onClick={exportCSV} style={greenButton}>
-              Export CSV
-            </button>
-          </div>
         </header>
-
-        {showMessage && <div style={messageBoxTop}>{message}</div>}
 
         <section style={statsGrid}>
           <div style={statCard}>
@@ -426,9 +232,9 @@ export default function App() {
         </section>
 
         <div style={chartCard}>
-          <h2 style={{ marginTop: 0, marginBottom: 10 }}>Betalningsstatus</h2>
+          <h2 style={{ marginTop: 0 }}>Betalningsstatus</h2>
 
-          <p style={{ color: "#6b7280" }}>
+          <p style={{ color: "#64748b" }}>
             {paidInvoices.length} av {invoices.length} fakturor betalda
           </p>
 
@@ -482,10 +288,6 @@ export default function App() {
 
               <button style={primaryButton}>Skapa faktura</button>
             </form>
-
-            <button onClick={sendAllReminders} style={orangeFullButton}>
-              Skicka alla påminnelser
-            </button>
           </div>
 
           <div style={panel}>
@@ -511,87 +313,6 @@ export default function App() {
                 </select>
               </div>
             </div>
-
-            {filteredInvoices.map((invoice) => {
-              const id = invoice._id || invoice.id;
-
-              return (
-                <div key={id} style={invoiceCard}>
-                  <div style={invoiceTop}>
-                    <div>
-                      <h3 style={invoiceName}>
-                        {invoice.customerName || invoice.name}
-                      </h3>
-                      <p style={invoiceEmail}>{invoice.customerEmail || "-"}</p>
-                    </div>
-
-                    <span
-                      style={{
-                        ...badge,
-                        background: invoice.paid ? "#dcfce7" : "#fee2e2",
-                        color: invoice.paid ? "#166534" : "#991b1b",
-                      }}
-                    >
-                      {invoice.paid ? "Betald" : "Obetald"}
-                    </span>
-                  </div>
-
-                  <div style={invoiceMeta}>
-                    <div>
-                      <p style={metaLabel}>Belopp</p>
-                      <strong>{invoice.amount} kr</strong>
-                    </div>
-
-                    <div>
-                      <p style={metaLabel}>Förfallodatum</p>
-                      <strong>{invoice.deadline || invoice.dueDate || "-"}</strong>
-                    </div>
-                  </div>
-
-                  <div style={buttonRow}>
-                    {!invoice.paid && (
-                      <>
-                        <button
-                          onClick={() => payWithStripe(id)}
-                          style={stripeButton}
-                        >
-                          Stripe
-                        </button>
-
-                        <button
-                          onClick={() => markPaid(id)}
-                          style={paidButton}
-                        >
-                          Betald
-                        </button>
-
-                        <button
-                          onClick={() => sendReminder(id)}
-                          style={orangeButton}
-                        >
-                          Påminnelse
-                        </button>
-                      </>
-                    )}
-
-                    <button onClick={() => openPdf(id)} style={tealButton}>
-                      PDF
-                    </button>
-
-                    <button
-                      onClick={() => copyCustomerLink(id)}
-                      style={blueButton}
-                    >
-                      Kundlänk
-                    </button>
-
-                    <button onClick={() => deleteInvoice(id)} style={redButton}>
-                      Ta bort
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
 
             {filteredInvoices.length === 0 && (
               <div style={emptyBox}>Inga fakturor matchar sökningen.</div>
@@ -658,6 +379,7 @@ const navItem = {
   padding: "12px 14px",
   borderRadius: 12,
   color: "#cbd5e1",
+  cursor: "pointer",
 };
 
 const navItemActive = {
@@ -666,15 +388,6 @@ const navItemActive = {
   background: "#1d4ed8",
   color: "white",
   fontWeight: "bold",
-};
-
-const logoutButton = {
-  marginTop: "auto",
-  border: "none",
-  background: "#dc2626",
-  color: "white",
-  padding: 12,
-  borderRadius: 12,
   cursor: "pointer",
 };
 
@@ -698,11 +411,6 @@ const pageTitle = {
 const pageSub = {
   margin: "6px 0 0",
   color: "#64748b",
-};
-
-const headerActions = {
-  display: "flex",
-  gap: 10,
 };
 
 const statsGrid = {
@@ -757,7 +465,6 @@ const panel = {
   borderRadius: 22,
   padding: 22,
   boxShadow: "0 12px 30px rgba(15,23,42,0.08)",
-  height: "fit-content",
 };
 
 const panelTitle = {
@@ -772,22 +479,6 @@ const input = {
   marginBottom: 12,
   borderRadius: 12,
   border: "1px solid #d1d5db",
-  fontSize: 14,
-};
-
-const searchInput = {
-  padding: 12,
-  borderRadius: 12,
-  border: "1px solid #d1d5db",
-  fontSize: 14,
-  minWidth: 240,
-};
-
-const select = {
-  padding: 12,
-  borderRadius: 12,
-  border: "1px solid #d1d5db",
-  fontSize: 14,
 };
 
 const primaryButton = {
@@ -799,36 +490,6 @@ const primaryButton = {
   borderRadius: 12,
   cursor: "pointer",
   fontWeight: "bold",
-};
-
-const secondaryFullButton = {
-  width: "100%",
-  border: "none",
-  background: "#334155",
-  color: "white",
-  padding: 14,
-  borderRadius: 12,
-  cursor: "pointer",
-};
-
-const orangeFullButton = {
-  ...primaryButton,
-  background: "#ea580c",
-  marginTop: 12,
-};
-
-const topButton = {
-  border: "none",
-  background: "#2563eb",
-  color: "white",
-  padding: "11px 15px",
-  borderRadius: 12,
-  cursor: "pointer",
-};
-
-const greenButton = {
-  ...topButton,
-  background: "#0f766e",
 };
 
 const listHeader = {
@@ -845,152 +506,16 @@ const toolbar = {
   flexWrap: "wrap",
 };
 
-const invoiceCard = {
-  border: "1px solid #e5e7eb",
-  borderRadius: 16,
-  padding: 14,
-  marginBottom: 12,
-  background: "#ffffff",
-};
-
-const invoiceTop = {
-  display: "flex",
-  justifyContent: "space-between",
-  gap: 12,
-  alignItems: "flex-start",
-};
-
-const invoiceName = {
-  margin: 0,
-  color: "#0f172a",
-};
-
-const invoiceEmail = {
-  margin: "4px 0 0",
-  color: "#64748b",
-  fontSize: 14,
-};
-
-const badge = {
-  padding: "6px 11px",
-  borderRadius: 999,
-  fontWeight: "bold",
-  fontSize: 12,
-};
-
-const invoiceMeta = {
-  display: "flex",
-  gap: 28,
-  marginTop: 10,
-};
-
-const metaLabel = {
-  margin: "0 0 4px",
-  color: "#64748b",
-  fontSize: 12,
-};
-
-const buttonRow = {
-  display: "flex",
-  gap: 7,
-  flexWrap: "wrap",
-  marginTop: 12,
-};
-
-const smallButtonBase = {
-  border: "none",
-  color: "white",
-  padding: "8px 11px",
-  borderRadius: 9,
-  cursor: "pointer",
-  fontWeight: "bold",
-  fontSize: 13,
-};
-
-const stripeButton = {
-  ...smallButtonBase,
-  background: "#635bff",
-};
-
-const paidButton = {
-  ...smallButtonBase,
-  background: "#16a34a",
-};
-
-const orangeButton = {
-  ...smallButtonBase,
-  background: "#ea580c",
-};
-
-const tealButton = {
-  ...smallButtonBase,
-  background: "#0f766e",
-};
-
-const blueButton = {
-  ...smallButtonBase,
-  background: "#2563eb",
-};
-
-const redButton = {
-  ...smallButtonBase,
-  background: "#dc2626",
-};
-
-const publicPage = {
-  background: "#eef2f7",
-  minHeight: "100vh",
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "center",
-  padding: 20,
-  fontFamily: "Inter, Arial, sans-serif",
-};
-
-const publicCard = {
-  background: "white",
-  padding: 36,
-  borderRadius: 24,
-  width: 430,
-  boxShadow: "0 12px 30px rgba(15,23,42,0.12)",
-};
-
-const logo = {
-  fontWeight: "bold",
-  color: "#2563eb",
-  marginBottom: 12,
-};
-
-const publicTitle = {
-  marginTop: 0,
-  color: "#0f172a",
-};
-
-const publicInfo = {
-  color: "#334155",
-  lineHeight: 1.7,
-};
-
-const payButton = {
-  ...primaryButton,
-  background: "#635bff",
-  marginTop: 14,
-};
-
-const messageBox = {
-  marginTop: 16,
-  background: "#dbeafe",
-  color: "#1e3a8a",
-  padding: 13,
+const searchInput = {
+  padding: 12,
   borderRadius: 12,
+  border: "1px solid #d1d5db",
 };
 
-const messageBoxTop = {
-  background: "#dbeafe",
-  color: "#1e3a8a",
-  padding: 13,
+const select = {
+  padding: 12,
   borderRadius: 12,
-  marginBottom: 18,
+  border: "1px solid #d1d5db",
 };
 
 const emptyBox = {
