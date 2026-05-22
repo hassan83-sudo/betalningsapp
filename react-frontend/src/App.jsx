@@ -27,11 +27,7 @@ export default function App() {
   useEffect(() => {
     if (message) {
       setShowMessage(true);
-
-      const timer = setTimeout(() => {
-        setShowMessage(false);
-      }, 3000);
-
+      const timer = setTimeout(() => setShowMessage(false), 3000);
       return () => clearTimeout(timer);
     }
   }, [message]);
@@ -136,6 +132,7 @@ export default function App() {
     }
 
     setMessage("Faktura skapad");
+
     setForm({
       customerName: "",
       customerEmail: "",
@@ -147,9 +144,10 @@ export default function App() {
   }
 
   async function payWithStripe(id) {
-    const res = await fetch(`${API_URL}/api/invoices/${id}/create-checkout-session`, {
-      method: "POST",
-    });
+    const res = await fetch(
+      `${API_URL}/api/invoices/${id}/create-checkout-session`,
+      { method: "POST" }
+    );
 
     const data = await res.json();
 
@@ -164,6 +162,7 @@ export default function App() {
     await fetch(`${API_URL}/api/invoices/${id}/pay`, {
       method: "PATCH",
     });
+
     setMessage("Faktura markerad som betald");
     fetchInvoices();
   }
@@ -172,6 +171,7 @@ export default function App() {
     const res = await fetch(`${API_URL}/api/invoices/${id}/send-reminder`, {
       method: "POST",
     });
+
     setMessage(res.ok ? "Påminnelse skickad" : "Påminnelse misslyckades");
   }
 
@@ -179,6 +179,7 @@ export default function App() {
     const res = await fetch(`${API_URL}/api/invoices/send-reminders`, {
       method: "POST",
     });
+
     setMessage(res.ok ? "Alla påminnelser skickade" : "Kunde inte skicka alla");
   }
 
@@ -186,6 +187,7 @@ export default function App() {
     await fetch(`${API_URL}/api/invoices/${id}`, {
       method: "DELETE",
     });
+
     setMessage("Faktura borttagen");
     fetchInvoices();
   }
@@ -202,6 +204,7 @@ export default function App() {
 
   function exportCSV() {
     const headers = ["Kund", "Email", "Belopp", "Förfallodatum", "Status"];
+
     const rows = invoices.map((invoice) => [
       invoice.customerName || invoice.name || "",
       invoice.customerEmail || "",
@@ -210,7 +213,10 @@ export default function App() {
       invoice.paid ? "Betald" : "Obetald",
     ]);
 
-    const csv = [headers.join(","), ...rows.map((row) => row.join(","))].join("\n");
+    const csv = [headers.join(","), ...rows.map((row) => row.join(","))].join(
+      "\n"
+    );
+
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -222,10 +228,28 @@ export default function App() {
     document.body.removeChild(link);
   }
 
-  const totalAmount = invoices.reduce((sum, invoice) => sum + Number(invoice.amount || 0), 0);
+  const totalAmount = invoices.reduce(
+    (sum, invoice) => sum + Number(invoice.amount || 0),
+    0
+  );
+
   const unpaidInvoices = invoices.filter((invoice) => !invoice.paid);
   const paidInvoices = invoices.filter((invoice) => invoice.paid);
-  const unpaidAmount = unpaidInvoices.reduce((sum, invoice) => sum + Number(invoice.amount || 0), 0);
+
+  const unpaidAmount = unpaidInvoices.reduce(
+    (sum, invoice) => sum + Number(invoice.amount || 0),
+    0
+  );
+
+  const paidPercentage = invoices.length
+    ? Math.round((paidInvoices.length / invoices.length) * 100)
+    : 0;
+
+  const progressFillDynamic = {
+    height: "100%",
+    width: `${paidPercentage}%`,
+    background: "linear-gradient(90deg,#2563eb,#7c3aed)",
+  };
 
   const filteredInvoices = invoices.filter((invoice) => {
     const name = invoice.customerName || invoice.name || "";
@@ -251,13 +275,23 @@ export default function App() {
           <h1 style={publicTitle}>{publicInvoice.customerName}</h1>
 
           <div style={publicInfo}>
-            <p><strong>Belopp:</strong> {publicInvoice.amount} kr</p>
-            <p><strong>Förfallodatum:</strong> {publicInvoice.deadline || "-"}</p>
-            <p><strong>Status:</strong> {publicInvoice.paid ? "Betald" : "Obetald"}</p>
+            <p>
+              <strong>Belopp:</strong> {publicInvoice.amount} kr
+            </p>
+            <p>
+              <strong>Förfallodatum:</strong> {publicInvoice.deadline || "-"}
+            </p>
+            <p>
+              <strong>Status:</strong>{" "}
+              {publicInvoice.paid ? "Betald" : "Obetald"}
+            </p>
           </div>
 
           {!publicInvoice.paid && (
-            <button onClick={() => payWithStripe(publicInvoice._id)} style={payButton}>
+            <button
+              onClick={() => payWithStripe(publicInvoice._id)}
+              style={payButton}
+            >
               Betala med Stripe
             </button>
           )}
@@ -271,14 +305,19 @@ export default function App() {
       <div style={publicPage}>
         <div style={publicCard}>
           <div style={logo}>KronoPay</div>
-          <h1 style={publicTitle}>{authMode === "login" ? "Logga in" : "Skapa konto"}</h1>
+
+          <h1 style={publicTitle}>
+            {authMode === "login" ? "Logga in" : "Skapa konto"}
+          </h1>
 
           <form onSubmit={handleAuth}>
             <input
               type="email"
               placeholder="Email"
               value={authForm.email}
-              onChange={(e) => setAuthForm({ ...authForm, email: e.target.value })}
+              onChange={(e) =>
+                setAuthForm({ ...authForm, email: e.target.value })
+              }
               style={input}
               required
             />
@@ -287,7 +326,9 @@ export default function App() {
               type="password"
               placeholder="Lösenord"
               value={authForm.password}
-              onChange={(e) => setAuthForm({ ...authForm, password: e.target.value })}
+              onChange={(e) =>
+                setAuthForm({ ...authForm, password: e.target.value })
+              }
               style={input}
               required
             />
@@ -298,7 +339,9 @@ export default function App() {
           </form>
 
           <button
-            onClick={() => setAuthMode(authMode === "login" ? "register" : "login")}
+            onClick={() =>
+              setAuthMode(authMode === "login" ? "register" : "login")
+            }
             style={secondaryFullButton}
           >
             {authMode === "login" ? "Skapa konto" : "Har redan konto?"}
@@ -315,6 +358,7 @@ export default function App() {
       <aside style={sidebar}>
         <div style={brandBox}>
           <div style={brandIcon}>K</div>
+
           <div>
             <h2 style={brandTitle}>KronoPay</h2>
             <p style={brandSub}>Admin</p>
@@ -347,8 +391,13 @@ export default function App() {
           </div>
 
           <div style={headerActions}>
-            <button onClick={fetchInvoices} style={topButton}>Uppdatera</button>
-            <button onClick={exportCSV} style={greenButton}>Export CSV</button>
+            <button onClick={fetchInvoices} style={topButton}>
+              Uppdatera
+            </button>
+
+            <button onClick={exportCSV} style={greenButton}>
+              Export CSV
+            </button>
           </div>
         </header>
 
@@ -375,6 +424,18 @@ export default function App() {
             <h2 style={statValue}>{paidInvoices.length}</h2>
           </div>
         </section>
+
+        <div style={chartCard}>
+          <h2 style={{ marginTop: 0, marginBottom: 10 }}>Betalningsstatus</h2>
+
+          <p style={{ color: "#6b7280" }}>
+            {paidInvoices.length} av {invoices.length} fakturor betalda
+          </p>
+
+          <div style={progressBar}>
+            <div style={progressFillDynamic}></div>
+          </div>
+        </div>
 
         <section style={contentGrid}>
           <div style={panel}>
@@ -458,7 +519,9 @@ export default function App() {
                 <div key={id} style={invoiceCard}>
                   <div style={invoiceTop}>
                     <div>
-                      <h3 style={invoiceName}>{invoice.customerName || invoice.name}</h3>
+                      <h3 style={invoiceName}>
+                        {invoice.customerName || invoice.name}
+                      </h3>
                       <p style={invoiceEmail}>{invoice.customerEmail || "-"}</p>
                     </div>
 
@@ -488,15 +551,43 @@ export default function App() {
                   <div style={buttonRow}>
                     {!invoice.paid && (
                       <>
-                        <button onClick={() => payWithStripe(id)} style={stripeButton}>Stripe</button>
-                        <button onClick={() => markPaid(id)} style={paidButton}>Betald</button>
-                        <button onClick={() => sendReminder(id)} style={orangeButton}>Påminnelse</button>
+                        <button
+                          onClick={() => payWithStripe(id)}
+                          style={stripeButton}
+                        >
+                          Stripe
+                        </button>
+
+                        <button
+                          onClick={() => markPaid(id)}
+                          style={paidButton}
+                        >
+                          Betald
+                        </button>
+
+                        <button
+                          onClick={() => sendReminder(id)}
+                          style={orangeButton}
+                        >
+                          Påminnelse
+                        </button>
                       </>
                     )}
 
-                    <button onClick={() => openPdf(id)} style={tealButton}>PDF</button>
-                    <button onClick={() => copyCustomerLink(id)} style={blueButton}>Kundlänk</button>
-                    <button onClick={() => deleteInvoice(id)} style={redButton}>Ta bort</button>
+                    <button onClick={() => openPdf(id)} style={tealButton}>
+                      PDF
+                    </button>
+
+                    <button
+                      onClick={() => copyCustomerLink(id)}
+                      style={blueButton}
+                    >
+                      Kundlänk
+                    </button>
+
+                    <button onClick={() => deleteInvoice(id)} style={redButton}>
+                      Ta bort
+                    </button>
                   </div>
                 </div>
               );
@@ -637,6 +728,22 @@ const statLabel = {
 const statValue = {
   margin: "10px 0 0",
   color: "#0f172a",
+};
+
+const chartCard = {
+  background: "white",
+  padding: 24,
+  borderRadius: 24,
+  boxShadow: "0 10px 30px rgba(0,0,0,0.06)",
+  marginBottom: 24,
+};
+
+const progressBar = {
+  height: 12,
+  borderRadius: 999,
+  background: "#e5e7eb",
+  overflow: "hidden",
+  marginTop: 10,
 };
 
 const contentGrid = {
