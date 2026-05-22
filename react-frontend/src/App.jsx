@@ -1,16 +1,21 @@
 import React, { useEffect, useState } from "react";
 import Customers from "./pages/Customers";
 import Reports from "./pages/Reports";
+import Subscriptions from "./pages/Subscriptions";
+import { lightTheme, darkTheme } from "./styles/theme";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 export default function App() {
   const [page, setPage] = useState("dashboard");
+  const [darkMode, setDarkMode] = useState(false);
   const [invoices, setInvoices] = useState([]);
   const [message, setMessage] = useState("");
   const [showMessage, setShowMessage] = useState(false);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
+
+  const theme = darkMode ? darkTheme : lightTheme;
 
   const [form, setForm] = useState({
     customerName: "",
@@ -26,11 +31,7 @@ export default function App() {
   useEffect(() => {
     if (message) {
       setShowMessage(true);
-
-      const timer = setTimeout(() => {
-        setShowMessage(false);
-      }, 3000);
-
+      const timer = setTimeout(() => setShowMessage(false), 3000);
       return () => clearTimeout(timer);
     }
   }, [message]);
@@ -39,7 +40,6 @@ export default function App() {
     try {
       const res = await fetch(`${API_URL}/api/invoices`);
       const data = await res.json();
-
       setInvoices(data);
     } catch {
       setMessage("Kunde inte hämta fakturor");
@@ -47,10 +47,7 @@ export default function App() {
   }
 
   function handleChange(e) {
-    setForm({
-      ...form,
-      [e.target.name]: e.target.value,
-    });
+    setForm({ ...form, [e.target.name]: e.target.value });
   }
 
   async function createInvoice(e) {
@@ -65,9 +62,7 @@ export default function App() {
 
     const res = await fetch(`${API_URL}/api/invoices`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
 
@@ -94,7 +89,6 @@ export default function App() {
   );
 
   const unpaidInvoices = invoices.filter((invoice) => !invoice.paid);
-
   const paidInvoices = invoices.filter((invoice) => invoice.paid);
 
   const unpaidAmount = unpaidInvoices.reduce(
@@ -128,20 +122,15 @@ export default function App() {
     return matchesSearch && matchesFilter;
   });
 
-  if (page === "customers") {
-    return <Customers />;
-  }
-
-  if (page === "reports") {
-    return <Reports />;
-  }
+  if (page === "customers") return <Customers />;
+  if (page === "reports") return <Reports />;
+  if (page === "subscriptions") return <Subscriptions />;
 
   return (
-    <div style={appShell}>
+    <div style={{ ...appShell, background: theme.background }}>
       <aside style={sidebar}>
         <div style={brandBox}>
           <div style={brandIcon}>K</div>
-
           <div>
             <h2 style={brandTitle}>KronoPay</h2>
             <p style={brandSub}>Admin</p>
@@ -149,25 +138,17 @@ export default function App() {
         </div>
 
         <nav style={nav}>
-          <div
-            onClick={() => setPage("dashboard")}
-            style={page === "dashboard" ? navItemActive : navItem}
-          >
+          <div onClick={() => setPage("dashboard")} style={page === "dashboard" ? navItemActive : navItem}>
             Dashboard
           </div>
-
-          <div
-            onClick={() => setPage("customers")}
-            style={page === "customers" ? navItemActive : navItem}
-          >
+          <div onClick={() => setPage("customers")} style={page === "customers" ? navItemActive : navItem}>
             Kunder
           </div>
-
-          <div
-            onClick={() => setPage("reports")}
-            style={page === "reports" ? navItemActive : navItem}
-          >
+          <div onClick={() => setPage("reports")} style={page === "reports" ? navItemActive : navItem}>
             Rapporter
+          </div>
+          <div onClick={() => setPage("subscriptions")} style={page === "subscriptions" ? navItemActive : navItem}>
+            Subscriptions
           </div>
         </nav>
       </aside>
@@ -175,47 +156,51 @@ export default function App() {
       <main style={main}>
         <header style={header}>
           <div>
-            <h1 style={pageTitle}>Dashboard</h1>
-            <p style={pageSub}>Fakturor, kundlänkar och betalningar</p>
+            <h1 style={{ ...pageTitle, color: theme.text }}>Dashboard</h1>
+            <p style={{ ...pageSub, color: theme.subtext }}>
+              Fakturor, kundlänkar och betalningar
+            </p>
           </div>
 
-          <button onClick={fetchInvoices} style={topButton}>
-            Uppdatera
-          </button>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={fetchInvoices} style={topButton}>
+              Uppdatera
+            </button>
+
+            <button onClick={() => setDarkMode(!darkMode)} style={topButton}>
+              {darkMode ? "Light" : "Dark"}
+            </button>
+          </div>
         </header>
 
-        {showMessage && (
-          <div style={messageBoxTop}>{message}</div>
-        )}
+        {showMessage && <div style={messageBoxTop}>{message}</div>}
 
         <section style={statsGrid}>
-          <div style={statCard}>
-            <p style={statLabel}>Totalt fakturabelopp</p>
-            <h2 style={statValue}>{totalAmount} kr</h2>
+          <div style={{ ...statCard, background: theme.card }}>
+            <p style={{ ...statLabel, color: theme.subtext }}>Totalt fakturabelopp</p>
+            <h2 style={{ ...statValue, color: theme.text }}>{totalAmount} kr</h2>
           </div>
 
-          <div style={statCard}>
-            <p style={statLabel}>Obetalt belopp</p>
-            <h2 style={statValue}>{unpaidAmount} kr</h2>
+          <div style={{ ...statCard, background: theme.card }}>
+            <p style={{ ...statLabel, color: theme.subtext }}>Obetalt belopp</p>
+            <h2 style={{ ...statValue, color: theme.text }}>{unpaidAmount} kr</h2>
           </div>
 
-          <div style={statCard}>
-            <p style={statLabel}>Obetalda fakturor</p>
-            <h2 style={statValue}>{unpaidInvoices.length}</h2>
+          <div style={{ ...statCard, background: theme.card }}>
+            <p style={{ ...statLabel, color: theme.subtext }}>Obetalda fakturor</p>
+            <h2 style={{ ...statValue, color: theme.text }}>{unpaidInvoices.length}</h2>
           </div>
 
-          <div style={statCard}>
-            <p style={statLabel}>Betalda fakturor</p>
-            <h2 style={statValue}>{paidInvoices.length}</h2>
+          <div style={{ ...statCard, background: theme.card }}>
+            <p style={{ ...statLabel, color: theme.subtext }}>Betalda fakturor</p>
+            <h2 style={{ ...statValue, color: theme.text }}>{paidInvoices.length}</h2>
           </div>
         </section>
 
-        <div style={chartCard}>
-          <h2 style={{ marginTop: 0 }}>
-            Betalningsstatus
-          </h2>
+        <div style={{ ...chartCard, background: theme.card }}>
+          <h2 style={{ marginTop: 0, color: theme.text }}>Betalningsstatus</h2>
 
-          <p style={{ color: "#64748b" }}>
+          <p style={{ color: theme.subtext }}>
             {paidInvoices.length} av {invoices.length} fakturor betalda
           </p>
 
@@ -225,57 +210,21 @@ export default function App() {
         </div>
 
         <section style={contentGrid}>
-          <div style={panel}>
-            <h2 style={panelTitle}>Skapa faktura</h2>
+          <div style={{ ...panel, background: theme.card }}>
+            <h2 style={{ ...panelTitle, color: theme.text }}>Skapa faktura</h2>
 
             <form onSubmit={createInvoice}>
-              <input
-                name="customerName"
-                placeholder="Kundnamn"
-                value={form.customerName}
-                onChange={handleChange}
-                style={input}
-                required
-              />
-
-              <input
-                name="customerEmail"
-                placeholder="Kund-email"
-                type="email"
-                value={form.customerEmail}
-                onChange={handleChange}
-                style={input}
-                required
-              />
-
-              <input
-                name="amount"
-                type="number"
-                placeholder="Belopp"
-                value={form.amount}
-                onChange={handleChange}
-                style={input}
-                required
-              />
-
-              <input
-                name="deadline"
-                type="date"
-                value={form.deadline}
-                onChange={handleChange}
-                style={input}
-                required
-              />
-
-              <button style={primaryButton}>
-                Skapa faktura
-              </button>
+              <input name="customerName" placeholder="Kundnamn" value={form.customerName} onChange={handleChange} style={input} required />
+              <input name="customerEmail" placeholder="Kund-email" type="email" value={form.customerEmail} onChange={handleChange} style={input} required />
+              <input name="amount" type="number" placeholder="Belopp" value={form.amount} onChange={handleChange} style={input} required />
+              <input name="deadline" type="date" value={form.deadline} onChange={handleChange} style={input} required />
+              <button style={primaryButton}>Skapa faktura</button>
             </form>
           </div>
 
-          <div style={panel}>
+          <div style={{ ...panel, background: theme.card }}>
             <div style={listHeader}>
-              <h2 style={panelTitle}>Fakturor</h2>
+              <h2 style={{ ...panelTitle, color: theme.text }}>Fakturor</h2>
 
               <div style={toolbar}>
                 <input
@@ -285,11 +234,7 @@ export default function App() {
                   style={searchInput}
                 />
 
-                <select
-                  value={filter}
-                  onChange={(e) => setFilter(e.target.value)}
-                  style={select}
-                >
+                <select value={filter} onChange={(e) => setFilter(e.target.value)} style={select}>
                   <option value="all">Alla</option>
                   <option value="unpaid">Obetalda</option>
                   <option value="paid">Betalda</option>
@@ -298,9 +243,7 @@ export default function App() {
             </div>
 
             {filteredInvoices.length === 0 && (
-              <div style={emptyBox}>
-                Inga fakturor matchar sökningen.
-              </div>
+              <div style={emptyBox}>Inga fakturor matchar sökningen.</div>
             )}
           </div>
         </section>
@@ -313,7 +256,6 @@ const appShell = {
   display: "grid",
   gridTemplateColumns: "260px 1fr",
   minHeight: "100vh",
-  background: "#eef2f7",
   fontFamily: "Inter, Arial, sans-serif",
 };
 
@@ -390,12 +332,10 @@ const header = {
 const pageTitle = {
   margin: 0,
   fontSize: 32,
-  color: "#0f172a",
 };
 
 const pageSub = {
   margin: "6px 0 0",
-  color: "#64748b",
 };
 
 const topButton = {
@@ -415,7 +355,6 @@ const statsGrid = {
 };
 
 const statCard = {
-  background: "white",
   padding: 22,
   borderRadius: 20,
   boxShadow: "0 12px 30px rgba(15,23,42,0.08)",
@@ -423,17 +362,14 @@ const statCard = {
 
 const statLabel = {
   margin: 0,
-  color: "#64748b",
   fontSize: 14,
 };
 
 const statValue = {
   margin: "10px 0 0",
-  color: "#0f172a",
 };
 
 const chartCard = {
-  background: "white",
   padding: 24,
   borderRadius: 24,
   boxShadow: "0 10px 30px rgba(0,0,0,0.06)",
@@ -455,7 +391,6 @@ const contentGrid = {
 };
 
 const panel = {
-  background: "white",
   borderRadius: 22,
   padding: 22,
   boxShadow: "0 12px 30px rgba(15,23,42,0.08)",
@@ -463,7 +398,6 @@ const panel = {
 
 const panelTitle = {
   marginTop: 0,
-  color: "#0f172a",
 };
 
 const input = {
