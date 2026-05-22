@@ -6,6 +6,7 @@ export default function App() {
   const [invoices, setInvoices] = useState([]);
   const [publicInvoice, setPublicInvoice] = useState(null);
   const [message, setMessage] = useState("");
+  const [showMessage, setShowMessage] = useState(false);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
   const [token, setToken] = useState(localStorage.getItem("token") || "");
@@ -22,6 +23,18 @@ export default function App() {
     amount: "",
     deadline: "",
   });
+
+  useEffect(() => {
+    if (message) {
+      setShowMessage(true);
+
+      const timer = setTimeout(() => {
+        setShowMessage(false);
+      }, 3000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [message]);
 
   useEffect(() => {
     async function init() {
@@ -291,7 +304,7 @@ export default function App() {
             {authMode === "login" ? "Skapa konto" : "Har redan konto?"}
           </button>
 
-          {message && <div style={messageBox}>{message}</div>}
+          {showMessage && <div style={messageBox}>{message}</div>}
         </div>
       </div>
     );
@@ -339,7 +352,7 @@ export default function App() {
           </div>
         </header>
 
-        {message && <div style={messageBoxTop}>{message}</div>}
+        {showMessage && <div style={messageBoxTop}>{message}</div>}
 
         <section style={statsGrid}>
           <div style={statCard}>
