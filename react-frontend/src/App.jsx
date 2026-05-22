@@ -1,24 +1,16 @@
 import React, { useEffect, useState } from "react";
 import Customers from "./pages/Customers";
+import Reports from "./pages/Reports";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 export default function App() {
   const [page, setPage] = useState("dashboard");
   const [invoices, setInvoices] = useState([]);
-  const [publicInvoice, setPublicInvoice] = useState(null);
   const [message, setMessage] = useState("");
   const [showMessage, setShowMessage] = useState(false);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
-  const [token, setToken] = useState(localStorage.getItem("token") || "");
-
-  const [authMode, setAuthMode] = useState("login");
-
-  const [authForm, setAuthForm] = useState({
-    email: "",
-    password: "",
-  });
 
   const [form, setForm] = useState({
     customerName: "",
@@ -28,72 +20,37 @@ export default function App() {
   });
 
   useEffect(() => {
+    fetchInvoices();
+  }, []);
+
+  useEffect(() => {
     if (message) {
       setShowMessage(true);
-      const timer = setTimeout(() => setShowMessage(false), 3000);
+
+      const timer = setTimeout(() => {
+        setShowMessage(false);
+      }, 3000);
+
       return () => clearTimeout(timer);
     }
   }, [message]);
-
-  useEffect(() => {
-    async function init() {
-      const params = new URLSearchParams(window.location.search);
-      const invoiceId = params.get("invoice");
-
-      if (invoiceId) {
-        const res = await fetch(`${API_URL}/api/public/invoice/${invoiceId}`);
-        const data = await res.json();
-        setPublicInvoice(data);
-        return;
-      }
-
-      if (token) fetchInvoices();
-    }
-
-    init();
-  }, [token]);
 
   async function fetchInvoices() {
     try {
       const res = await fetch(`${API_URL}/api/invoices`);
       const data = await res.json();
+
       setInvoices(data);
     } catch {
       setMessage("Kunde inte hämta fakturor");
     }
   }
 
-  async function handleAuth(e) {
-    e.preventDefault();
-
-    const endpoint = authMode === "login" ? "login" : "register";
-
-    const res = await fetch(`${API_URL}/api/${endpoint}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(authForm),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      setMessage(data.message || "Auth error");
-      return;
-    }
-
-    if (data.token) {
-      localStorage.setItem("token", data.token);
-      setToken(data.token);
-      setMessage("Inloggad");
-      return;
-    }
-
-    setMessage("Konto skapat. Logga in nu.");
-    setAuthMode("login");
-  }
-
   function handleChange(e) {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    setForm({
+      ...form,
+      [e.target.name]: e.target.value,
+    });
   }
 
   async function createInvoice(e) {
@@ -108,7 +65,9 @@ export default function App() {
 
     const res = await fetch(`${API_URL}/api/invoices`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify(payload),
     });
 
@@ -135,6 +94,7 @@ export default function App() {
   );
 
   const unpaidInvoices = invoices.filter((invoice) => !invoice.paid);
+
   const paidInvoices = invoices.filter((invoice) => invoice.paid);
 
   const unpaidAmount = unpaidInvoices.reduce(
@@ -172,6 +132,10 @@ export default function App() {
     return <Customers />;
   }
 
+  if (page === "reports") {
+    return <Reports />;
+  }
+
   return (
     <div style={appShell}>
       <aside style={sidebar}>
@@ -198,6 +162,13 @@ export default function App() {
           >
             Kunder
           </div>
+
+          <div
+            onClick={() => setPage("reports")}
+            style={page === "reports" ? navItemActive : navItem}
+          >
+            Rapporter
+          </div>
         </nav>
       </aside>
 
@@ -207,7 +178,15 @@ export default function App() {
             <h1 style={pageTitle}>Dashboard</h1>
             <p style={pageSub}>Fakturor, kundlänkar och betalningar</p>
           </div>
+
+          <button onClick={fetchInvoices} style={topButton}>
+            Uppdatera
+          </button>
         </header>
+
+        {showMessage && (
+          <div style={messageBoxTop}>{message}</div>
+        )}
 
         <section style={statsGrid}>
           <div style={statCard}>
@@ -232,7 +211,9 @@ export default function App() {
         </section>
 
         <div style={chartCard}>
-          <h2 style={{ marginTop: 0 }}>Betalningsstatus</h2>
+          <h2 style={{ marginTop: 0 }}>
+            Betalningsstatus
+          </h2>
 
           <p style={{ color: "#64748b" }}>
             {paidInvoices.length} av {invoices.length} fakturor betalda
@@ -286,7 +267,9 @@ export default function App() {
                 required
               />
 
-              <button style={primaryButton}>Skapa faktura</button>
+              <button style={primaryButton}>
+                Skapa faktura
+              </button>
             </form>
           </div>
 
@@ -315,7 +298,9 @@ export default function App() {
             </div>
 
             {filteredInvoices.length === 0 && (
-              <div style={emptyBox}>Inga fakturor matchar sökningen.</div>
+              <div style={emptyBox}>
+                Inga fakturor matchar sökningen.
+              </div>
             )}
           </div>
         </section>
@@ -411,6 +396,15 @@ const pageTitle = {
 const pageSub = {
   margin: "6px 0 0",
   color: "#64748b",
+};
+
+const topButton = {
+  border: "none",
+  background: "#2563eb",
+  color: "white",
+  padding: "11px 15px",
+  borderRadius: 12,
+  cursor: "pointer",
 };
 
 const statsGrid = {
@@ -516,6 +510,14 @@ const select = {
   padding: 12,
   borderRadius: 12,
   border: "1px solid #d1d5db",
+};
+
+const messageBoxTop = {
+  background: "#dbeafe",
+  color: "#1e3a8a",
+  padding: 13,
+  borderRadius: 12,
+  marginBottom: 18,
 };
 
 const emptyBox = {
