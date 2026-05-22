@@ -847,9 +847,9 @@ const toolbar = {
 
 const invoiceCard = {
   border: "1px solid #e5e7eb",
-  borderRadius: 18,
-  padding: 18,
-  marginBottom: 16,
+  borderRadius: 16,
+  padding: 14,
+  marginBottom: 12,
   background: "#ffffff",
 };
 
@@ -866,43 +866,45 @@ const invoiceName = {
 };
 
 const invoiceEmail = {
-  margin: "5px 0 0",
+  margin: "4px 0 0",
   color: "#64748b",
+  fontSize: 14,
 };
 
 const badge = {
-  padding: "7px 12px",
+  padding: "6px 11px",
   borderRadius: 999,
   fontWeight: "bold",
-  fontSize: 13,
+  fontSize: 12,
 };
 
 const invoiceMeta = {
   display: "flex",
-  gap: 40,
-  marginTop: 18,
+  gap: 28,
+  marginTop: 10,
 };
 
 const metaLabel = {
-  margin: "0 0 5px",
+  margin: "0 0 4px",
   color: "#64748b",
-  fontSize: 13,
+  fontSize: 12,
 };
 
 const buttonRow = {
   display: "flex",
-  gap: 8,
+  gap: 7,
   flexWrap: "wrap",
-  marginTop: 18,
+  marginTop: 12,
 };
 
 const smallButtonBase = {
   border: "none",
   color: "white",
-  padding: "9px 12px",
-  borderRadius: 10,
+  padding: "8px 11px",
+  borderRadius: 9,
   cursor: "pointer",
   fontWeight: "bold",
+  fontSize: 13,
 };
 
 const stripeButton = {
