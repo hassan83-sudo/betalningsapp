@@ -5,29 +5,23 @@ import Subscriptions from "./pages/Subscriptions";
 import Settings from "./pages/Settings";
 import Notifications from "./pages/Notifications";
 import Analytics from "./pages/Analytics";
+import Billing from "./pages/Billing";
 import Login from "./pages/Login";
 import { lightTheme, darkTheme } from "./styles/theme";
 
-const API_URL =
-  import.meta.env.VITE_API_URL ||
-  "http://localhost:3000";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 export default function App() {
   const [page, setPage] = useState("login");
   const [loggedIn, setLoggedIn] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
-
   const [invoices, setInvoices] = useState([]);
   const [message, setMessage] = useState("");
-  const [showMessage, setShowMessage] =
-    useState(false);
-
+  const [showMessage, setShowMessage] = useState(false);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
 
-  const theme = darkMode
-    ? darkTheme
-    : lightTheme;
+  const theme = darkMode ? darkTheme : lightTheme;
 
   const [form, setForm] = useState({
     customerName: "",
@@ -37,44 +31,29 @@ export default function App() {
   });
 
   useEffect(() => {
-    if (loggedIn) {
-      fetchInvoices();
-    }
+    if (loggedIn) fetchInvoices();
   }, [loggedIn]);
 
   useEffect(() => {
     if (message) {
       setShowMessage(true);
-
-      const timer = setTimeout(() => {
-        setShowMessage(false);
-      }, 3000);
-
+      const timer = setTimeout(() => setShowMessage(false), 3000);
       return () => clearTimeout(timer);
     }
   }, [message]);
 
   async function fetchInvoices() {
     try {
-      const res = await fetch(
-        `${API_URL}/api/invoices`
-      );
-
+      const res = await fetch(`${API_URL}/api/invoices`);
       const data = await res.json();
-
       setInvoices(data);
     } catch {
-      setMessage(
-        "Kunde inte hämta fakturor"
-      );
+      setMessage("Kunde inte hämta fakturor");
     }
   }
 
   function handleChange(e) {
-    setForm({
-      ...form,
-      [e.target.name]: e.target.value,
-    });
+    setForm({ ...form, [e.target.name]: e.target.value });
   }
 
   async function createInvoice(e) {
@@ -87,22 +66,14 @@ export default function App() {
       deadline: form.deadline,
     };
 
-    const res = await fetch(
-      `${API_URL}/api/invoices`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type":
-            "application/json",
-        },
-        body: JSON.stringify(payload),
-      }
-    );
+    const res = await fetch(`${API_URL}/api/invoices`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
 
     if (!res.ok) {
-      setMessage(
-        "Kunde inte skapa faktura"
-      );
+      setMessage("Kunde inte skapa faktura");
       return;
     }
 
@@ -119,77 +90,43 @@ export default function App() {
   }
 
   const totalAmount = invoices.reduce(
-    (sum, invoice) =>
-      sum +
-      Number(invoice.amount || 0),
+    (sum, invoice) => sum + Number(invoice.amount || 0),
     0
   );
 
-  const unpaidInvoices =
-    invoices.filter(
-      (invoice) => !invoice.paid
-    );
+  const unpaidInvoices = invoices.filter((invoice) => !invoice.paid);
+  const paidInvoices = invoices.filter((invoice) => invoice.paid);
 
-  const paidInvoices = invoices.filter(
-    (invoice) => invoice.paid
+  const unpaidAmount = unpaidInvoices.reduce(
+    (sum, invoice) => sum + Number(invoice.amount || 0),
+    0
   );
 
-  const unpaidAmount =
-    unpaidInvoices.reduce(
-      (sum, invoice) =>
-        sum +
-        Number(invoice.amount || 0),
-      0
-    );
-
-  const paidPercentage =
-    invoices.length
-      ? Math.round(
-          (paidInvoices.length /
-            invoices.length) *
-            100
-        )
-      : 0;
+  const paidPercentage = invoices.length
+    ? Math.round((paidInvoices.length / invoices.length) * 100)
+    : 0;
 
   const progressFillDynamic = {
     height: "100%",
     width: `${paidPercentage}%`,
-    background:
-      "linear-gradient(90deg,#2563eb,#7c3aed)",
+    background: "linear-gradient(90deg,#2563eb,#7c3aed)",
   };
 
-  const filteredInvoices =
-    invoices.filter((invoice) => {
-      const name =
-        invoice.customerName || "";
+  const filteredInvoices = invoices.filter((invoice) => {
+    const name = invoice.customerName || "";
+    const email = invoice.customerEmail || "";
 
-      const email =
-        invoice.customerEmail || "";
+    const matchesSearch =
+      name.toLowerCase().includes(search.toLowerCase()) ||
+      email.toLowerCase().includes(search.toLowerCase());
 
-      const matchesSearch =
-        name
-          .toLowerCase()
-          .includes(
-            search.toLowerCase()
-          ) ||
-        email
-          .toLowerCase()
-          .includes(
-            search.toLowerCase()
-          );
+    const matchesFilter =
+      filter === "all" ||
+      (filter === "paid" && invoice.paid) ||
+      (filter === "unpaid" && !invoice.paid);
 
-      const matchesFilter =
-        filter === "all" ||
-        (filter === "paid" &&
-          invoice.paid) ||
-        (filter === "unpaid" &&
-          !invoice.paid);
-
-      return (
-        matchesSearch &&
-        matchesFilter
-      );
-    });
+    return matchesSearch && matchesFilter;
+  });
 
   if (!loggedIn) {
     return (
@@ -202,159 +139,84 @@ export default function App() {
     );
   }
 
-  if (page === "customers") {
-    return <Customers />;
-  }
-
-  if (page === "reports") {
-    return <Reports />;
-  }
-
-  if (page === "subscriptions") {
-    return <Subscriptions />;
-  }
-
-  if (page === "settings") {
-    return <Settings />;
-  }
-
-  if (page === "notifications") {
-    return <Notifications />;
-  }
-
-  if (page === "analytics") {
-    return <Analytics />;
-  }
+  if (page === "customers") return <Customers />;
+  if (page === "reports") return <Reports />;
+  if (page === "subscriptions") return <Subscriptions />;
+  if (page === "settings") return <Settings />;
+  if (page === "notifications") return <Notifications />;
+  if (page === "analytics") return <Analytics />;
+  if (page === "billing") return <Billing />;
 
   return (
-    <div
-      style={{
-        ...appShell,
-        background:
-          theme.background,
-      }}
-    >
+    <div style={{ ...appShell, background: theme.background }}>
       <aside style={sidebar}>
         <div style={brandBox}>
-          <div style={brandIcon}>
-            K
-          </div>
+          <div style={brandIcon}>K</div>
 
           <div>
-            <h2 style={brandTitle}>
-              KronoPay
-            </h2>
-
-            <p style={brandSub}>
-              Admin
-            </p>
+            <h2 style={brandTitle}>KronoPay</h2>
+            <p style={brandSub}>Admin</p>
           </div>
         </div>
 
         <nav style={nav}>
           <div
-            onClick={() =>
-              setPage("dashboard")
-            }
-            style={
-              page === "dashboard"
-                ? navItemActive
-                : navItem
-            }
+            onClick={() => setPage("dashboard")}
+            style={page === "dashboard" ? navItemActive : navItem}
           >
             Dashboard
           </div>
 
           <div
-            onClick={() =>
-              setPage("customers")
-            }
-            style={
-              page === "customers"
-                ? navItemActive
-                : navItem
-            }
+            onClick={() => setPage("customers")}
+            style={page === "customers" ? navItemActive : navItem}
           >
             Kunder
           </div>
 
           <div
-            onClick={() =>
-              setPage("reports")
-            }
-            style={
-              page === "reports"
-                ? navItemActive
-                : navItem
-            }
+            onClick={() => setPage("reports")}
+            style={page === "reports" ? navItemActive : navItem}
           >
             Rapporter
           </div>
 
           <div
-            onClick={() =>
-              setPage(
-                "subscriptions"
-              )
-            }
-            style={
-              page ===
-              "subscriptions"
-                ? navItemActive
-                : navItem
-            }
+            onClick={() => setPage("subscriptions")}
+            style={page === "subscriptions" ? navItemActive : navItem}
           >
             Subscriptions
           </div>
 
           <div
-            onClick={() =>
-              setPage(
-                "notifications"
-              )
-            }
-            style={
-              page ===
-              "notifications"
-                ? navItemActive
-                : navItem
-            }
+            onClick={() => setPage("notifications")}
+            style={page === "notifications" ? navItemActive : navItem}
           >
             Notifications
           </div>
 
           <div
-            onClick={() =>
-              setPage("analytics")
-            }
-            style={
-              page === "analytics"
-                ? navItemActive
-                : navItem
-            }
+            onClick={() => setPage("analytics")}
+            style={page === "analytics" ? navItemActive : navItem}
           >
             Analytics
           </div>
 
           <div
-            onClick={() =>
-              setPage("settings")
-            }
-            style={
-              page === "settings"
-                ? navItemActive
-                : navItem
-            }
+            onClick={() => setPage("billing")}
+            style={page === "billing" ? navItemActive : navItem}
+          >
+            Billing
+          </div>
+
+          <div
+            onClick={() => setPage("settings")}
+            style={page === "settings" ? navItemActive : navItem}
           >
             Settings
           </div>
 
-          <div
-            onClick={() =>
-              setLoggedIn(false)
-            }
-            style={logoutButton}
-          >
+          <div onClick={() => setLoggedIn(false)} style={logoutButton}>
             Logout
           </div>
         </nav>
@@ -363,257 +225,79 @@ export default function App() {
       <main style={main}>
         <header style={header}>
           <div>
-            <h1
-              style={{
-                ...pageTitle,
-                color: theme.text,
-              }}
-            >
-              Dashboard
-            </h1>
-
-            <p
-              style={{
-                ...pageSub,
-                color:
-                  theme.subtext,
-              }}
-            >
-              Fakturor,
-              kundlänkar och
-              betalningar
+            <h1 style={{ ...pageTitle, color: theme.text }}>Dashboard</h1>
+            <p style={{ ...pageSub, color: theme.subtext }}>
+              Fakturor, kundlänkar och betalningar
             </p>
           </div>
 
-          <div
-            style={{
-              display: "flex",
-              gap: 10,
-            }}
-          >
-            <button
-              onClick={
-                fetchInvoices
-              }
-              style={topButton}
-            >
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={fetchInvoices} style={topButton}>
               Uppdatera
             </button>
 
-            <button
-              onClick={() =>
-                setDarkMode(
-                  !darkMode
-                )
-              }
-              style={topButton}
-            >
-              {darkMode
-                ? "Light"
-                : "Dark"}
+            <button onClick={() => setDarkMode(!darkMode)} style={topButton}>
+              {darkMode ? "Light" : "Dark"}
             </button>
           </div>
         </header>
 
-        {showMessage && (
-          <div style={messageBoxTop}>
-            {message}
-          </div>
-        )}
+        {showMessage && <div style={messageBoxTop}>{message}</div>}
 
         <section style={statsGrid}>
-          <div
-            style={{
-              ...statCard,
-              background:
-                theme.card,
-            }}
-          >
-            <p
-              style={{
-                ...statLabel,
-                color:
-                  theme.subtext,
-              }}
-            >
-              Totalt
-              fakturabelopp
+          <div style={{ ...statCard, background: theme.card }}>
+            <p style={{ ...statLabel, color: theme.subtext }}>
+              Totalt fakturabelopp
             </p>
+            <h2 style={{ ...statValue, color: theme.text }}>{totalAmount} kr</h2>
+          </div>
 
-            <h2
-              style={{
-                ...statValue,
-                color:
-                  theme.text,
-              }}
-            >
-              {totalAmount} kr
+          <div style={{ ...statCard, background: theme.card }}>
+            <p style={{ ...statLabel, color: theme.subtext }}>Obetalt belopp</p>
+            <h2 style={{ ...statValue, color: theme.text }}>{unpaidAmount} kr</h2>
+          </div>
+
+          <div style={{ ...statCard, background: theme.card }}>
+            <p style={{ ...statLabel, color: theme.subtext }}>
+              Obetalda fakturor
+            </p>
+            <h2 style={{ ...statValue, color: theme.text }}>
+              {unpaidInvoices.length}
             </h2>
           </div>
 
-          <div
-            style={{
-              ...statCard,
-              background:
-                theme.card,
-            }}
-          >
-            <p
-              style={{
-                ...statLabel,
-                color:
-                  theme.subtext,
-              }}
-            >
-              Obetalt belopp
+          <div style={{ ...statCard, background: theme.card }}>
+            <p style={{ ...statLabel, color: theme.subtext }}>
+              Betalda fakturor
             </p>
-
-            <h2
-              style={{
-                ...statValue,
-                color:
-                  theme.text,
-              }}
-            >
-              {unpaidAmount} kr
-            </h2>
-          </div>
-
-          <div
-            style={{
-              ...statCard,
-              background:
-                theme.card,
-            }}
-          >
-            <p
-              style={{
-                ...statLabel,
-                color:
-                  theme.subtext,
-              }}
-            >
-              Obetalda
-              fakturor
-            </p>
-
-            <h2
-              style={{
-                ...statValue,
-                color:
-                  theme.text,
-              }}
-            >
-              {
-                unpaidInvoices.length
-              }
-            </h2>
-          </div>
-
-          <div
-            style={{
-              ...statCard,
-              background:
-                theme.card,
-            }}
-          >
-            <p
-              style={{
-                ...statLabel,
-                color:
-                  theme.subtext,
-              }}
-            >
-              Betalda
-              fakturor
-            </p>
-
-            <h2
-              style={{
-                ...statValue,
-                color:
-                  theme.text,
-              }}
-            >
-              {
-                paidInvoices.length
-              }
+            <h2 style={{ ...statValue, color: theme.text }}>
+              {paidInvoices.length}
             </h2>
           </div>
         </section>
 
-        <div
-          style={{
-            ...chartCard,
-            background:
-              theme.card,
-          }}
-        >
-          <h2
-            style={{
-              marginTop: 0,
-              color:
-                theme.text,
-            }}
-          >
-            Betalningsstatus
-          </h2>
+        <div style={{ ...chartCard, background: theme.card }}>
+          <h2 style={{ marginTop: 0, color: theme.text }}>Betalningsstatus</h2>
 
-          <p
-            style={{
-              color:
-                theme.subtext,
-            }}
-          >
-            {
-              paidInvoices.length
-            }{" "}
-            av{" "}
-            {invoices.length}{" "}
-            fakturor betalda
+          <p style={{ color: theme.subtext }}>
+            {paidInvoices.length} av {invoices.length} fakturor betalda
           </p>
 
           <div style={progressBar}>
-            <div
-              style={
-                progressFillDynamic
-              }
-            ></div>
+            <div style={progressFillDynamic}></div>
           </div>
         </div>
 
         <section style={contentGrid}>
-          <div
-            style={{
-              ...panel,
-              background:
-                theme.card,
-            }}
-          >
-            <h2
-              style={{
-                ...panelTitle,
-                color:
-                  theme.text,
-              }}
-            >
-              Skapa faktura
-            </h2>
+          <div style={{ ...panel, background: theme.card }}>
+            <h2 style={{ ...panelTitle, color: theme.text }}>Skapa faktura</h2>
 
-            <form
-              onSubmit={
-                createInvoice
-              }
-            >
+            <form onSubmit={createInvoice}>
               <input
                 name="customerName"
                 placeholder="Kundnamn"
-                value={
-                  form.customerName
-                }
-                onChange={
-                  handleChange
-                }
+                value={form.customerName}
+                onChange={handleChange}
                 style={input}
                 required
               />
@@ -622,12 +306,8 @@ export default function App() {
                 name="customerEmail"
                 placeholder="Kund-email"
                 type="email"
-                value={
-                  form.customerEmail
-                }
-                onChange={
-                  handleChange
-                }
+                value={form.customerEmail}
+                onChange={handleChange}
                 style={input}
                 required
               />
@@ -637,9 +317,7 @@ export default function App() {
                 type="number"
                 placeholder="Belopp"
                 value={form.amount}
-                onChange={
-                  handleChange
-                }
+                onChange={handleChange}
                 style={input}
                 required
               />
@@ -647,92 +325,42 @@ export default function App() {
               <input
                 name="deadline"
                 type="date"
-                value={
-                  form.deadline
-                }
-                onChange={
-                  handleChange
-                }
+                value={form.deadline}
+                onChange={handleChange}
                 style={input}
                 required
               />
 
-              <button
-                style={
-                  primaryButton
-                }
-              >
-                Skapa faktura
-              </button>
+              <button style={primaryButton}>Skapa faktura</button>
             </form>
           </div>
 
-          <div
-            style={{
-              ...panel,
-              background:
-                theme.card,
-            }}
-          >
+          <div style={{ ...panel, background: theme.card }}>
             <div style={listHeader}>
-              <h2
-                style={{
-                  ...panelTitle,
-                  color:
-                    theme.text,
-                }}
-              >
-                Fakturor
-              </h2>
+              <h2 style={{ ...panelTitle, color: theme.text }}>Fakturor</h2>
 
               <div style={toolbar}>
                 <input
                   placeholder="Sök kund eller email..."
                   value={search}
-                  onChange={(e) =>
-                    setSearch(
-                      e.target
-                        .value
-                    )
-                  }
-                  style={
-                    searchInput
-                  }
+                  onChange={(e) => setSearch(e.target.value)}
+                  style={searchInput}
                 />
 
                 <select
                   value={filter}
-                  onChange={(e) =>
-                    setFilter(
-                      e.target
-                        .value
-                    )
-                  }
+                  onChange={(e) => setFilter(e.target.value)}
                   style={select}
                 >
-                  <option value="all">
-                    Alla
-                  </option>
-
-                  <option value="unpaid">
-                    Obetalda
-                  </option>
-
-                  <option value="paid">
-                    Betalda
-                  </option>
+                  <option value="all">Alla</option>
+                  <option value="unpaid">Obetalda</option>
+                  <option value="paid">Betalda</option>
                 </select>
               </div>
             </div>
 
-            {filteredInvoices.length ===
-              0 && (
-              <div style={emptyBox}>
-                Inga
-                fakturor
-                matchar
-                sökningen.
-              </div>
+            {filteredInvoices.length === 0 && (
+              <div style={emptyBox}>Inga fakturor matchar sökningen.</div>
             )}
           </div>
         </section>
@@ -743,11 +371,9 @@ export default function App() {
 
 const appShell = {
   display: "grid",
-  gridTemplateColumns:
-    "260px 1fr",
+  gridTemplateColumns: "260px 1fr",
   minHeight: "100vh",
-  fontFamily:
-    "Inter, Arial, sans-serif",
+  fontFamily: "Inter, Arial, sans-serif",
 };
 
 const sidebar = {
@@ -824,8 +450,7 @@ const main = {
 
 const header = {
   display: "flex",
-  justifyContent:
-    "space-between",
+  justifyContent: "space-between",
   alignItems: "center",
   marginBottom: 24,
 };
@@ -850,8 +475,7 @@ const topButton = {
 
 const statsGrid = {
   display: "grid",
-  gridTemplateColumns:
-    "repeat(auto-fit, minmax(190px, 1fr))",
+  gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))",
   gap: 18,
   marginBottom: 24,
 };
@@ -859,8 +483,7 @@ const statsGrid = {
 const statCard = {
   padding: 22,
   borderRadius: 20,
-  boxShadow:
-    "0 12px 30px rgba(15,23,42,0.08)",
+  boxShadow: "0 12px 30px rgba(15,23,42,0.08)",
 };
 
 const statLabel = {
@@ -875,8 +498,7 @@ const statValue = {
 const chartCard = {
   padding: 24,
   borderRadius: 24,
-  boxShadow:
-    "0 10px 30px rgba(0,0,0,0.06)",
+  boxShadow: "0 10px 30px rgba(0,0,0,0.06)",
   marginBottom: 24,
 };
 
@@ -890,16 +512,14 @@ const progressBar = {
 
 const contentGrid = {
   display: "grid",
-  gridTemplateColumns:
-    "360px 1fr",
+  gridTemplateColumns: "360px 1fr",
   gap: 22,
 };
 
 const panel = {
   borderRadius: 22,
   padding: 22,
-  boxShadow:
-    "0 12px 30px rgba(15,23,42,0.08)",
+  boxShadow: "0 12px 30px rgba(15,23,42,0.08)",
 };
 
 const panelTitle = {
@@ -928,8 +548,7 @@ const primaryButton = {
 
 const listHeader = {
   display: "flex",
-  justifyContent:
-    "space-between",
+  justifyContent: "space-between",
   alignItems: "center",
   gap: 14,
   marginBottom: 16,
