@@ -5,22 +5,29 @@ import Subscriptions from "./pages/Subscriptions";
 import Settings from "./pages/Settings";
 import Notifications from "./pages/Notifications";
 import Analytics from "./pages/Analytics";
+import Login from "./pages/Login";
 import { lightTheme, darkTheme } from "./styles/theme";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  "http://localhost:3000";
 
 export default function App() {
-  const [page, setPage] = useState("dashboard");
+  const [page, setPage] = useState("login");
+  const [loggedIn, setLoggedIn] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
 
   const [invoices, setInvoices] = useState([]);
   const [message, setMessage] = useState("");
-  const [showMessage, setShowMessage] = useState(false);
+  const [showMessage, setShowMessage] =
+    useState(false);
 
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
 
-  const theme = darkMode ? darkTheme : lightTheme;
+  const theme = darkMode
+    ? darkTheme
+    : lightTheme;
 
   const [form, setForm] = useState({
     customerName: "",
@@ -30,8 +37,10 @@ export default function App() {
   });
 
   useEffect(() => {
-    fetchInvoices();
-  }, []);
+    if (loggedIn) {
+      fetchInvoices();
+    }
+  }, [loggedIn]);
 
   useEffect(() => {
     if (message) {
@@ -47,12 +56,17 @@ export default function App() {
 
   async function fetchInvoices() {
     try {
-      const res = await fetch(`${API_URL}/api/invoices`);
+      const res = await fetch(
+        `${API_URL}/api/invoices`
+      );
+
       const data = await res.json();
 
       setInvoices(data);
     } catch {
-      setMessage("Kunde inte hämta fakturor");
+      setMessage(
+        "Kunde inte hämta fakturor"
+      );
     }
   }
 
@@ -73,16 +87,22 @@ export default function App() {
       deadline: form.deadline,
     };
 
-    const res = await fetch(`${API_URL}/api/invoices`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
+    const res = await fetch(
+      `${API_URL}/api/invoices`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type":
+            "application/json",
+        },
+        body: JSON.stringify(payload),
+      }
+    );
 
     if (!res.ok) {
-      setMessage("Kunde inte skapa faktura");
+      setMessage(
+        "Kunde inte skapa faktura"
+      );
       return;
     }
 
@@ -99,28 +119,37 @@ export default function App() {
   }
 
   const totalAmount = invoices.reduce(
-    (sum, invoice) => sum + Number(invoice.amount || 0),
+    (sum, invoice) =>
+      sum +
+      Number(invoice.amount || 0),
     0
   );
 
-  const unpaidInvoices = invoices.filter(
-    (invoice) => !invoice.paid
-  );
+  const unpaidInvoices =
+    invoices.filter(
+      (invoice) => !invoice.paid
+    );
 
   const paidInvoices = invoices.filter(
     (invoice) => invoice.paid
   );
 
-  const unpaidAmount = unpaidInvoices.reduce(
-    (sum, invoice) => sum + Number(invoice.amount || 0),
-    0
-  );
+  const unpaidAmount =
+    unpaidInvoices.reduce(
+      (sum, invoice) =>
+        sum +
+        Number(invoice.amount || 0),
+      0
+    );
 
-  const paidPercentage = invoices.length
-    ? Math.round(
-        (paidInvoices.length / invoices.length) * 100
-      )
-    : 0;
+  const paidPercentage =
+    invoices.length
+      ? Math.round(
+          (paidInvoices.length /
+            invoices.length) *
+            100
+        )
+      : 0;
 
   const progressFillDynamic = {
     height: "100%",
@@ -129,27 +158,49 @@ export default function App() {
       "linear-gradient(90deg,#2563eb,#7c3aed)",
   };
 
-  const filteredInvoices = invoices.filter(
-    (invoice) => {
-      const name = invoice.customerName || "";
-      const email = invoice.customerEmail || "";
+  const filteredInvoices =
+    invoices.filter((invoice) => {
+      const name =
+        invoice.customerName || "";
+
+      const email =
+        invoice.customerEmail || "";
 
       const matchesSearch =
         name
           .toLowerCase()
-          .includes(search.toLowerCase()) ||
+          .includes(
+            search.toLowerCase()
+          ) ||
         email
           .toLowerCase()
-          .includes(search.toLowerCase());
+          .includes(
+            search.toLowerCase()
+          );
 
       const matchesFilter =
         filter === "all" ||
-        (filter === "paid" && invoice.paid) ||
-        (filter === "unpaid" && !invoice.paid);
+        (filter === "paid" &&
+          invoice.paid) ||
+        (filter === "unpaid" &&
+          !invoice.paid);
 
-      return matchesSearch && matchesFilter;
-    }
-  );
+      return (
+        matchesSearch &&
+        matchesFilter
+      );
+    });
+
+  if (!loggedIn) {
+    return (
+      <Login
+        onLogin={() => {
+          setLoggedIn(true);
+          setPage("dashboard");
+        }}
+      />
+    );
+  }
 
   if (page === "customers") {
     return <Customers />;
@@ -179,23 +230,32 @@ export default function App() {
     <div
       style={{
         ...appShell,
-        background: theme.background,
+        background:
+          theme.background,
       }}
     >
       <aside style={sidebar}>
         <div style={brandBox}>
-          <div style={brandIcon}>K</div>
+          <div style={brandIcon}>
+            K
+          </div>
 
           <div>
-            <h2 style={brandTitle}>KronoPay</h2>
+            <h2 style={brandTitle}>
+              KronoPay
+            </h2>
 
-            <p style={brandSub}>Admin</p>
+            <p style={brandSub}>
+              Admin
+            </p>
           </div>
         </div>
 
         <nav style={nav}>
           <div
-            onClick={() => setPage("dashboard")}
+            onClick={() =>
+              setPage("dashboard")
+            }
             style={
               page === "dashboard"
                 ? navItemActive
@@ -206,7 +266,9 @@ export default function App() {
           </div>
 
           <div
-            onClick={() => setPage("customers")}
+            onClick={() =>
+              setPage("customers")
+            }
             style={
               page === "customers"
                 ? navItemActive
@@ -217,7 +279,9 @@ export default function App() {
           </div>
 
           <div
-            onClick={() => setPage("reports")}
+            onClick={() =>
+              setPage("reports")
+            }
             style={
               page === "reports"
                 ? navItemActive
@@ -228,9 +292,14 @@ export default function App() {
           </div>
 
           <div
-            onClick={() => setPage("subscriptions")}
+            onClick={() =>
+              setPage(
+                "subscriptions"
+              )
+            }
             style={
-              page === "subscriptions"
+              page ===
+              "subscriptions"
                 ? navItemActive
                 : navItem
             }
@@ -239,9 +308,14 @@ export default function App() {
           </div>
 
           <div
-            onClick={() => setPage("notifications")}
+            onClick={() =>
+              setPage(
+                "notifications"
+              )
+            }
             style={
-              page === "notifications"
+              page ===
+              "notifications"
                 ? navItemActive
                 : navItem
             }
@@ -250,7 +324,9 @@ export default function App() {
           </div>
 
           <div
-            onClick={() => setPage("analytics")}
+            onClick={() =>
+              setPage("analytics")
+            }
             style={
               page === "analytics"
                 ? navItemActive
@@ -261,7 +337,9 @@ export default function App() {
           </div>
 
           <div
-            onClick={() => setPage("settings")}
+            onClick={() =>
+              setPage("settings")
+            }
             style={
               page === "settings"
                 ? navItemActive
@@ -269,6 +347,15 @@ export default function App() {
             }
           >
             Settings
+          </div>
+
+          <div
+            onClick={() =>
+              setLoggedIn(false)
+            }
+            style={logoutButton}
+          >
+            Logout
           </div>
         </nav>
       </aside>
@@ -288,10 +375,13 @@ export default function App() {
             <p
               style={{
                 ...pageSub,
-                color: theme.subtext,
+                color:
+                  theme.subtext,
               }}
             >
-              Fakturor, kundlänkar och betalningar
+              Fakturor,
+              kundlänkar och
+              betalningar
             </p>
           </div>
 
@@ -302,7 +392,9 @@ export default function App() {
             }}
           >
             <button
-              onClick={fetchInvoices}
+              onClick={
+                fetchInvoices
+              }
               style={topButton}
             >
               Uppdatera
@@ -310,11 +402,15 @@ export default function App() {
 
             <button
               onClick={() =>
-                setDarkMode(!darkMode)
+                setDarkMode(
+                  !darkMode
+                )
               }
               style={topButton}
             >
-              {darkMode ? "Light" : "Dark"}
+              {darkMode
+                ? "Light"
+                : "Dark"}
             </button>
           </div>
         </header>
@@ -329,22 +425,26 @@ export default function App() {
           <div
             style={{
               ...statCard,
-              background: theme.card,
+              background:
+                theme.card,
             }}
           >
             <p
               style={{
                 ...statLabel,
-                color: theme.subtext,
+                color:
+                  theme.subtext,
               }}
             >
-              Totalt fakturabelopp
+              Totalt
+              fakturabelopp
             </p>
 
             <h2
               style={{
                 ...statValue,
-                color: theme.text,
+                color:
+                  theme.text,
               }}
             >
               {totalAmount} kr
@@ -354,13 +454,15 @@ export default function App() {
           <div
             style={{
               ...statCard,
-              background: theme.card,
+              background:
+                theme.card,
             }}
           >
             <p
               style={{
                 ...statLabel,
-                color: theme.subtext,
+                color:
+                  theme.subtext,
               }}
             >
               Obetalt belopp
@@ -369,7 +471,8 @@ export default function App() {
             <h2
               style={{
                 ...statValue,
-                color: theme.text,
+                color:
+                  theme.text,
               }}
             >
               {unpaidAmount} kr
@@ -379,50 +482,62 @@ export default function App() {
           <div
             style={{
               ...statCard,
-              background: theme.card,
+              background:
+                theme.card,
             }}
           >
             <p
               style={{
                 ...statLabel,
-                color: theme.subtext,
+                color:
+                  theme.subtext,
               }}
             >
-              Obetalda fakturor
+              Obetalda
+              fakturor
             </p>
 
             <h2
               style={{
                 ...statValue,
-                color: theme.text,
+                color:
+                  theme.text,
               }}
             >
-              {unpaidInvoices.length}
+              {
+                unpaidInvoices.length
+              }
             </h2>
           </div>
 
           <div
             style={{
               ...statCard,
-              background: theme.card,
+              background:
+                theme.card,
             }}
           >
             <p
               style={{
                 ...statLabel,
-                color: theme.subtext,
+                color:
+                  theme.subtext,
               }}
             >
-              Betalda fakturor
+              Betalda
+              fakturor
             </p>
 
             <h2
               style={{
                 ...statValue,
-                color: theme.text,
+                color:
+                  theme.text,
               }}
             >
-              {paidInvoices.length}
+              {
+                paidInvoices.length
+              }
             </h2>
           </div>
         </section>
@@ -430,13 +545,15 @@ export default function App() {
         <div
           style={{
             ...chartCard,
-            background: theme.card,
+            background:
+              theme.card,
           }}
         >
           <h2
             style={{
               marginTop: 0,
-              color: theme.text,
+              color:
+                theme.text,
             }}
           >
             Betalningsstatus
@@ -444,16 +561,23 @@ export default function App() {
 
           <p
             style={{
-              color: theme.subtext,
+              color:
+                theme.subtext,
             }}
           >
-            {paidInvoices.length} av{" "}
-            {invoices.length} fakturor betalda
+            {
+              paidInvoices.length
+            }{" "}
+            av{" "}
+            {invoices.length}{" "}
+            fakturor betalda
           </p>
 
           <div style={progressBar}>
             <div
-              style={progressFillDynamic}
+              style={
+                progressFillDynamic
+              }
             ></div>
           </div>
         </div>
@@ -462,24 +586,34 @@ export default function App() {
           <div
             style={{
               ...panel,
-              background: theme.card,
+              background:
+                theme.card,
             }}
           >
             <h2
               style={{
                 ...panelTitle,
-                color: theme.text,
+                color:
+                  theme.text,
               }}
             >
               Skapa faktura
             </h2>
 
-            <form onSubmit={createInvoice}>
+            <form
+              onSubmit={
+                createInvoice
+              }
+            >
               <input
                 name="customerName"
                 placeholder="Kundnamn"
-                value={form.customerName}
-                onChange={handleChange}
+                value={
+                  form.customerName
+                }
+                onChange={
+                  handleChange
+                }
                 style={input}
                 required
               />
@@ -488,8 +622,12 @@ export default function App() {
                 name="customerEmail"
                 placeholder="Kund-email"
                 type="email"
-                value={form.customerEmail}
-                onChange={handleChange}
+                value={
+                  form.customerEmail
+                }
+                onChange={
+                  handleChange
+                }
                 style={input}
                 required
               />
@@ -499,7 +637,9 @@ export default function App() {
                 type="number"
                 placeholder="Belopp"
                 value={form.amount}
-                onChange={handleChange}
+                onChange={
+                  handleChange
+                }
                 style={input}
                 required
               />
@@ -507,13 +647,21 @@ export default function App() {
               <input
                 name="deadline"
                 type="date"
-                value={form.deadline}
-                onChange={handleChange}
+                value={
+                  form.deadline
+                }
+                onChange={
+                  handleChange
+                }
                 style={input}
                 required
               />
 
-              <button style={primaryButton}>
+              <button
+                style={
+                  primaryButton
+                }
+              >
                 Skapa faktura
               </button>
             </form>
@@ -522,14 +670,16 @@ export default function App() {
           <div
             style={{
               ...panel,
-              background: theme.card,
+              background:
+                theme.card,
             }}
           >
             <div style={listHeader}>
               <h2
                 style={{
                   ...panelTitle,
-                  color: theme.text,
+                  color:
+                    theme.text,
                 }}
               >
                 Fakturor
@@ -540,15 +690,23 @@ export default function App() {
                   placeholder="Sök kund eller email..."
                   value={search}
                   onChange={(e) =>
-                    setSearch(e.target.value)
+                    setSearch(
+                      e.target
+                        .value
+                    )
                   }
-                  style={searchInput}
+                  style={
+                    searchInput
+                  }
                 />
 
                 <select
                   value={filter}
                   onChange={(e) =>
-                    setFilter(e.target.value)
+                    setFilter(
+                      e.target
+                        .value
+                    )
                   }
                   style={select}
                 >
@@ -567,9 +725,12 @@ export default function App() {
               </div>
             </div>
 
-            {filteredInvoices.length === 0 && (
+            {filteredInvoices.length ===
+              0 && (
               <div style={emptyBox}>
-                Inga fakturor matchar
+                Inga
+                fakturor
+                matchar
                 sökningen.
               </div>
             )}
@@ -582,9 +743,11 @@ export default function App() {
 
 const appShell = {
   display: "grid",
-  gridTemplateColumns: "260px 1fr",
+  gridTemplateColumns:
+    "260px 1fr",
   minHeight: "100vh",
-  fontFamily: "Inter, Arial, sans-serif",
+  fontFamily:
+    "Inter, Arial, sans-serif",
 };
 
 const sidebar = {
@@ -646,13 +809,23 @@ const navItemActive = {
   cursor: "pointer",
 };
 
+const logoutButton = {
+  padding: "12px 14px",
+  borderRadius: 12,
+  background: "#dc2626",
+  color: "white",
+  cursor: "pointer",
+  marginTop: 12,
+};
+
 const main = {
   padding: 28,
 };
 
 const header = {
   display: "flex",
-  justifyContent: "space-between",
+  justifyContent:
+    "space-between",
   alignItems: "center",
   marginBottom: 24,
 };
@@ -717,7 +890,8 @@ const progressBar = {
 
 const contentGrid = {
   display: "grid",
-  gridTemplateColumns: "360px 1fr",
+  gridTemplateColumns:
+    "360px 1fr",
   gap: 22,
 };
 
@@ -754,7 +928,8 @@ const primaryButton = {
 
 const listHeader = {
   display: "flex",
-  justifyContent: "space-between",
+  justifyContent:
+    "space-between",
   alignItems: "center",
   gap: 14,
   marginBottom: 16,
