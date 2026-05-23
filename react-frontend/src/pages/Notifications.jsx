@@ -4,7 +4,6 @@ import Reports from "./pages/Reports";
 import Subscriptions from "./pages/Subscriptions";
 import Settings from "./pages/Settings";
 import Notifications from "./pages/Notifications";
-import Analytics from "./pages/Analytics";
 import { lightTheme, darkTheme } from "./styles/theme";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
@@ -171,10 +170,6 @@ export default function App() {
     return <Notifications />;
   }
 
-  if (page === "analytics") {
-    return <Analytics />;
-  }
-
   return (
     <div
       style={{
@@ -247,17 +242,6 @@ export default function App() {
             }
           >
             Notifications
-          </div>
-
-          <div
-            onClick={() => setPage("analytics")}
-            style={
-              page === "analytics"
-                ? navItemActive
-                : navItem
-            }
-          >
-            Analytics
           </div>
 
           <div
