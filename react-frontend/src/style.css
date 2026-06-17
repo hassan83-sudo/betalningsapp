@@ -640,6 +640,51 @@ button {
   color: #f8fafc;
 }
 
+.monthly-overview {
+  margin-top: 14px;
+  border: 1px solid rgba(34, 211, 238, 0.18);
+  border-radius: 20px;
+  padding: 16px;
+  background:
+    linear-gradient(145deg, rgba(34, 211, 238, 0.08), rgba(139, 92, 246, 0.07)),
+    rgba(2, 6, 23, 0.28);
+}
+
+.monthly-table {
+  display: grid;
+  gap: 8px;
+}
+
+.monthly-table-head,
+.monthly-table-row {
+  display: grid;
+  grid-template-columns: 1.2fr repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  align-items: center;
+}
+
+.monthly-table-head {
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.monthly-table-row {
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 16px;
+  padding: 12px;
+  background: rgba(2, 6, 23, 0.28);
+}
+
+.monthly-table-row strong {
+  color: #f8fafc;
+}
+
+.monthly-table-row span {
+  color: #cbd5e1;
+  font-weight: 750;
+}
+
 .login-page {
   display: grid;
   min-height: 100vh;
@@ -776,6 +821,14 @@ button {
     bottom: -16px;
     left: 20px;
     transform: none;
+  }
+
+  .monthly-table-head {
+    display: none;
+  }
+
+  .monthly-table-row {
+    grid-template-columns: 1fr;
   }
 
   .case-row {

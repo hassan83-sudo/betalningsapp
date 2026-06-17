@@ -193,6 +193,30 @@ function makeForecast(cases, monthlyPayment) {
   const months = effectivePayment > 0 ? Math.ceil(totalDebt / effectivePayment) : null;
   const afterThreeMonths = Math.max(0, totalDebt + monthlyFees * 3 - monthlyPayment * 3);
   const afterSixMonths = Math.max(0, totalDebt + monthlyFees * 6 - monthlyPayment * 6);
+  const debtFreeDate = months ? new Date() : null;
+  const monthlyRows = Array.from({ length: 6 }, (_, index) => {
+    const monthDate = new Date();
+    const startDebt = Math.max(
+      0,
+      totalDebt + monthlyFees * index - monthlyPayment * index,
+    );
+    const remainingDebt = Math.max(0, startDebt + monthlyFees - monthlyPayment);
+
+    monthDate.setMonth(monthDate.getMonth() + index + 1);
+
+    return {
+      id: `${monthDate.getFullYear()}-${monthDate.getMonth()}`,
+      month: formatMonth(monthDate),
+      payment: Math.min(monthlyPayment, startDebt + monthlyFees),
+      remainingDebt,
+      startDebt,
+    };
+  });
+
+  if (debtFreeDate) {
+    debtFreeDate.setMonth(debtFreeDate.getMonth() + months);
+  }
+
   const recommendation =
     !months
       ? "Betalningen täcker inte demoavgifterna. Höj månadsbeloppet innan en plan föreslås."
@@ -208,7 +232,9 @@ function makeForecast(cases, monthlyPayment) {
     monthlyFees,
     effectivePayment,
     months,
+    debtFreeMonth: debtFreeDate ? formatMonth(debtFreeDate) : "Ingen prognos",
     afterSixMonths,
+    monthlyRows,
     recommendation,
   };
 }
@@ -588,6 +614,34 @@ export default function App() {
               <div className="payment-recommendation">
                 <span>Kort rekommendation</span>
                 <strong>{forecast.recommendation}</strong>
+              </div>
+
+              <div className="monthly-overview">
+                <div className="panel-heading">
+                  <div>
+                    <p className="eyebrow">Skuldöversikt per månad</p>
+                    <h2>Prognostabell</h2>
+                  </div>
+                  <span>Skuldfri: {forecast.debtFreeMonth}</span>
+                </div>
+
+                <div className="monthly-table">
+                  <div className="monthly-table-head">
+                    <span>Månad</span>
+                    <span>Startskuld</span>
+                    <span>Betalning</span>
+                    <span>Kvarvarande skuld</span>
+                  </div>
+
+                  {forecast.monthlyRows.map((row) => (
+                    <div className="monthly-table-row" key={row.id}>
+                      <strong>{row.month}</strong>
+                      <span>{formatCurrency(row.startDebt)}</span>
+                      <span>-{formatCurrency(row.payment)}</span>
+                      <span>{formatCurrency(row.remainingDebt)}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </article>
           </section>
