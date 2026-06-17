@@ -6,6 +6,9 @@ const collectionCases = [
     id: "KR-24018",
     company: "Svea Inkasso",
     creditor: "Elbolaget Nord",
+    originalDebt: 3950,
+    fees: 540,
+    interest: 370,
     amount: 4860,
     status: "Inkasso",
     dueDate: "2026-06-28",
@@ -17,6 +20,9 @@ const collectionCases = [
     id: "KR-24021",
     company: "Alektum Group",
     creditor: "Mobiloperatör",
+    originalDebt: 1850,
+    fees: 320,
+    interest: 170,
     amount: 2340,
     status: "Påminnelse",
     dueDate: "2026-07-04",
@@ -28,6 +34,9 @@ const collectionCases = [
     id: "KR-24027",
     company: "Intrum",
     creditor: "Delbetalning butik",
+    originalDebt: 7950,
+    fees: 690,
+    interest: 540,
     amount: 9180,
     status: "Avbetalning möjlig",
     dueDate: "2026-07-16",
@@ -39,6 +48,9 @@ const collectionCases = [
     id: "KR-24032",
     company: "Lowell",
     creditor: "Bredbandstjänst",
+    originalDebt: 980,
+    fees: 180,
+    interest: 120,
     amount: 1280,
     status: "Förfaller snart",
     dueDate: "2026-06-22",
@@ -136,8 +148,8 @@ export default function App() {
         <nav className="sidebar-nav" aria-label="Huvudnavigation">
           <a href="#oversikt">Översikt</a>
           <a href="#arenden">Inkassoärenden</a>
+          <a href="#skulddetalj">Skulddetalj</a>
           <a href="#prognos">Prognos</a>
-          <a href="#plan">Avbetalningsplan</a>
         </nav>
 
         <button className="logout-button" type="button" onClick={() => setLoggedIn(false)}>
@@ -217,18 +229,28 @@ export default function App() {
                   <span className={`risk-pill ${getRiskClass(item.risk)}`}>
                     {item.risk}
                   </span>
+                  <small className="case-open-hint">Öppna detalj</small>
                 </button>
               ))}
             </div>
           </article>
 
-          <article className="panel detail-panel" id="plan">
+          <article className="panel detail-panel" id="skulddetalj">
             <div className="panel-heading">
               <div>
-                <p className="eyebrow">Avbetalningsplan</p>
+                <p className="eyebrow">Skulddetalj</p>
                 <h2>{selectedCase.company}</h2>
               </div>
               <span>{selectedCase.id}</span>
+            </div>
+
+            <div className="debt-detail-summary">
+              <span>Totalt belopp</span>
+              <strong>{formatCurrency(selectedCase.amount)}</strong>
+              <small>
+                Status: {selectedCase.status} · Förfallodatum{" "}
+                {formatDate(selectedCase.dueDate)}
+              </small>
             </div>
 
             <dl className="detail-list">
@@ -241,7 +263,23 @@ export default function App() {
                 <dd>{selectedCase.creditor}</dd>
               </div>
               <div>
-                <dt>Belopp</dt>
+                <dt>Ärendenummer</dt>
+                <dd>{selectedCase.id}</dd>
+              </div>
+              <div>
+                <dt>Ursprunglig skuld</dt>
+                <dd>{formatCurrency(selectedCase.originalDebt)}</dd>
+              </div>
+              <div>
+                <dt>Avgifter</dt>
+                <dd>{formatCurrency(selectedCase.fees)}</dd>
+              </div>
+              <div>
+                <dt>Ränta</dt>
+                <dd>{formatCurrency(selectedCase.interest)}</dd>
+              </div>
+              <div>
+                <dt>Totalt belopp</dt>
                 <dd>{formatCurrency(selectedCase.amount)}</dd>
               </div>
               <div>
@@ -249,13 +287,13 @@ export default function App() {
                 <dd>{selectedCase.status}</dd>
               </div>
               <div>
-                <dt>Föreslagen betalning</dt>
-                <dd>{formatCurrency(selectedCase.suggestedPlan)} / mån</dd>
+                <dt>Förfallodatum</dt>
+                <dd>{formatDate(selectedCase.dueDate)}</dd>
               </div>
             </dl>
 
             <div className="plan-note">
-              <strong>Förslag</strong>
+              <strong>Avbetalningsförslag</strong>
               <p>
                 Kontakta inkassobolaget och föreslå en plan runt{" "}
                 {formatCurrency(selectedCase.suggestedPlan)} per månad. Detta är

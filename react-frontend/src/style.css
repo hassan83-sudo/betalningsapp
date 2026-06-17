@@ -297,6 +297,13 @@ button {
   display: block;
 }
 
+.case-open-hint {
+  grid-column: 1 / -1;
+  color: #67e8f9 !important;
+  font-size: 12px;
+  font-weight: 850;
+}
+
 .risk-pill {
   justify-self: end;
   border-radius: 999px;
@@ -324,6 +331,29 @@ button {
   display: grid;
   gap: 10px;
   margin: 0;
+}
+
+.debt-detail-summary {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 14px;
+  border: 1px solid rgba(34, 211, 238, 0.2);
+  border-radius: 18px;
+  padding: 16px;
+  background:
+    linear-gradient(135deg, rgba(34, 211, 238, 0.1), rgba(139, 92, 246, 0.08)),
+    rgba(2, 6, 23, 0.32);
+}
+
+.debt-detail-summary span,
+.debt-detail-summary small {
+  color: #94a3b8;
+}
+
+.debt-detail-summary strong {
+  color: #f8fafc;
+  font-size: 30px;
+  line-height: 1.05;
 }
 
 .detail-list div,
