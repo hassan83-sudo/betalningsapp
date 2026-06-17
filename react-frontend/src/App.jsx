@@ -72,6 +72,14 @@ const dateFormatter = new Intl.DateTimeFormat("sv-SE", {
   year: "numeric",
 });
 
+const collectionTimelineSteps = [
+  "Idag",
+  "Påminnelse",
+  "Inkasso",
+  "Betalningsföreläggande",
+  "Kronofogden",
+];
+
 function formatCurrency(value) {
   return currencyFormatter.format(value);
 }
@@ -90,6 +98,47 @@ function getRiskClass(risk) {
   }
 
   return "risk-low";
+}
+
+function getTimelineIndex(status) {
+  if (status === "Påminnelse" || status === "Förfaller snart") {
+    return 1;
+  }
+
+  if (status === "Inkasso" || status === "Avbetalning möjlig") {
+    return 2;
+  }
+
+  return 0;
+}
+
+function makeTimelineSummary(item) {
+  const currentIndex = getTimelineIndex(item.status);
+  const nextStep = collectionTimelineSteps[currentIndex + 1] ?? "Klar";
+  const daysToDue = Math.max(
+    0,
+    Math.ceil((new Date(item.dueDate) - new Date()) / 86400000),
+  );
+  const timeToNextStep =
+    nextStep === "Klar"
+      ? "Ingen kommande eskalering i demo"
+      : daysToDue > 0
+        ? `${daysToDue} dagar till nästa viktiga datum`
+        : "Nästa steg kan bli aktuellt nu";
+  const recommendedAction =
+    item.risk === "Hög"
+      ? "Kontakta inkassobolaget idag och föreslå en realistisk månadsbetalning."
+      : item.risk === "Medel"
+        ? "Gör en betalningsplan innan förfallodatum och prioritera ärendet i budgeten."
+        : "Bevaka förfallodatum och betala eller föreslå plan innan ärendet går vidare.";
+
+  return {
+    currentIndex,
+    currentStep: collectionTimelineSteps[currentIndex],
+    nextStep,
+    recommendedAction,
+    timeToNextStep,
+  };
 }
 
 function makeForecast(cases, monthlyPayment) {
@@ -116,6 +165,7 @@ export default function App() {
 
   const selectedCase =
     collectionCases.find((item) => item.id === selectedCaseId) ?? collectionCases[0];
+  const selectedTimeline = makeTimelineSummary(selectedCase);
 
   const forecast = useMemo(
     () => makeForecast(collectionCases, Number(monthlyPayment) || 0),
@@ -267,6 +317,54 @@ export default function App() {
                   <dd>{formatCurrency(selectedCase.suggestedPlan)} / mån</dd>
                 </div>
               </dl>
+
+              <section className="debt-timeline-card" aria-label="Tidslinje för ärendet">
+                <div className="panel-heading">
+                  <div>
+                    <p className="eyebrow">Tidslinje</p>
+                    <h2>Ärendets möjliga väg framåt</h2>
+                  </div>
+                  <span className={`risk-pill ${getRiskClass(selectedCase.risk)}`}>
+                    {selectedCase.risk}
+                  </span>
+                </div>
+
+                <div className="timeline-summary-grid">
+                  <div>
+                    <span>Nuvarande steg</span>
+                    <strong>{selectedTimeline.currentStep}</strong>
+                  </div>
+                  <div>
+                    <span>Kommande steg</span>
+                    <strong>{selectedTimeline.nextStep}</strong>
+                  </div>
+                  <div>
+                    <span>Tid till nästa steg</span>
+                    <strong>{selectedTimeline.timeToNextStep}</strong>
+                  </div>
+                </div>
+
+                <ol className="debt-timeline">
+                  {collectionTimelineSteps.map((step, index) => (
+                    <li
+                      className={
+                        index === selectedTimeline.currentIndex
+                          ? "timeline-step current"
+                          : "timeline-step"
+                      }
+                      key={step}
+                    >
+                      <span>{index + 1}</span>
+                      <strong>{step}</strong>
+                    </li>
+                  ))}
+                </ol>
+
+                <div className="recommended-action">
+                  <span>Rekommenderad åtgärd</span>
+                  <strong>{selectedTimeline.recommendedAction}</strong>
+                </div>
+              </section>
 
               <div className="plan-note">
                 <strong>Avbetalningsförslag</strong>

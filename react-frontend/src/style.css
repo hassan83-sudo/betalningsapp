@@ -371,6 +371,7 @@ button {
 
 .detail-list div,
 .forecast-grid div,
+.timeline-summary-grid div,
 .plan-note {
   border: 1px solid rgba(148, 163, 184, 0.14);
   border-radius: 16px;
@@ -382,6 +383,110 @@ button {
   margin: 4px 0 0;
   color: #f8fafc;
   font-weight: 850;
+}
+
+.debt-timeline-card {
+  display: grid;
+  gap: 14px;
+  margin-top: 14px;
+  border: 1px solid rgba(34, 211, 238, 0.18);
+  border-radius: 20px;
+  padding: 16px;
+  background:
+    linear-gradient(145deg, rgba(34, 211, 238, 0.08), rgba(139, 92, 246, 0.08)),
+    rgba(2, 6, 23, 0.28);
+}
+
+.timeline-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.timeline-summary-grid span,
+.recommended-action span {
+  display: block;
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.timeline-summary-grid strong,
+.recommended-action strong {
+  display: block;
+  margin-top: 5px;
+  color: #f8fafc;
+}
+
+.debt-timeline {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.timeline-step {
+  position: relative;
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  min-height: 104px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 16px;
+  padding: 12px;
+  background: rgba(2, 6, 23, 0.3);
+}
+
+.timeline-step:not(:last-child)::after {
+  position: absolute;
+  top: 31px;
+  right: -11px;
+  color: #64748b;
+  content: "↓";
+  transform: rotate(-90deg);
+}
+
+.timeline-step span {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border-radius: 999px;
+  color: #cbd5e1;
+  background: rgba(148, 163, 184, 0.14);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.timeline-step strong {
+  color: #cbd5e1;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.timeline-step.current {
+  border-color: rgba(34, 211, 238, 0.44);
+  background:
+    radial-gradient(circle at top right, rgba(34, 211, 238, 0.16), transparent 55%),
+    rgba(15, 23, 42, 0.58);
+}
+
+.timeline-step.current span {
+  color: #020617;
+  background: linear-gradient(135deg, #22d3ee, #8b5cf6);
+}
+
+.timeline-step.current strong {
+  color: #f8fafc;
+}
+
+.recommended-action {
+  border: 1px solid rgba(139, 92, 246, 0.22);
+  border-radius: 16px;
+  padding: 12px;
+  background: rgba(139, 92, 246, 0.09);
 }
 
 .plan-note {
@@ -555,8 +660,25 @@ button {
   .stats-grid,
   .dashboard-grid,
   .debt-detail-list,
+  .debt-timeline,
   .forecast-grid {
     grid-template-columns: 1fr;
+  }
+
+  .timeline-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .timeline-step {
+    min-height: auto;
+  }
+
+  .timeline-step:not(:last-child)::after {
+    top: auto;
+    right: auto;
+    bottom: -16px;
+    left: 20px;
+    transform: none;
   }
 
   .case-row {
