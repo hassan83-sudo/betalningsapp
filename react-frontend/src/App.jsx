@@ -244,6 +244,7 @@ export default function App() {
   const [monthlyPayment, setMonthlyPayment] = useState(2500);
   const [selectedCaseId, setSelectedCaseId] = useState(collectionCases[0].id);
   const [showDebtDetail, setShowDebtDetail] = useState(false);
+  const [showAllMonths, setShowAllMonths] = useState(false);
 
   const selectedCase =
     collectionCases.find((item) => item.id === selectedCaseId) ?? collectionCases[0];
@@ -625,7 +626,7 @@ export default function App() {
                   <span>Skuldfri: {forecast.debtFreeMonth}</span>
                 </div>
 
-                <div className="monthly-table">
+                <div className={showAllMonths ? "monthly-table show-all" : "monthly-table"}>
                   <div className="monthly-table-head">
                     <span>Månad</span>
                     <span>Startskuld</span>
@@ -633,15 +634,36 @@ export default function App() {
                     <span>Kvarvarande skuld</span>
                   </div>
 
-                  {forecast.monthlyRows.map((row) => (
-                    <div className="monthly-table-row" key={row.id}>
+                  {forecast.monthlyRows.map((row, index) => (
+                    <div
+                      className={
+                        index >= 4
+                          ? "monthly-table-row extra-month"
+                          : "monthly-table-row"
+                      }
+                      key={row.id}
+                    >
                       <strong>{row.month}</strong>
-                      <span>{formatCurrency(row.startDebt)}</span>
-                      <span>-{formatCurrency(row.payment)}</span>
-                      <span>{formatCurrency(row.remainingDebt)}</span>
+                      <span data-label="Startskuld">
+                        {formatCurrency(row.startDebt)}
+                      </span>
+                      <span data-label="Betalning">
+                        -{formatCurrency(row.payment)}
+                      </span>
+                      <span data-label="Kvarvarande skuld">
+                        {formatCurrency(row.remainingDebt)}
+                      </span>
                     </div>
                   ))}
                 </div>
+
+                <button
+                  className="monthly-toggle"
+                  type="button"
+                  onClick={() => setShowAllMonths((current) => !current)}
+                >
+                  {showAllMonths ? "Visa färre månader" : "Visa fler månader"}
+                </button>
               </div>
             </article>
           </section>

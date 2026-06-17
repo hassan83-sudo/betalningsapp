@@ -16,10 +16,12 @@
 }
 
 html {
+  overflow-x: hidden;
   scroll-behavior: smooth;
 }
 
 body {
+  overflow-x: hidden;
   min-width: 320px;
   min-height: 100vh;
   margin: 0;
@@ -31,6 +33,7 @@ body {
 
 button,
 input {
+  max-width: 100%;
   font: inherit;
 }
 
@@ -42,6 +45,8 @@ button {
   display: grid;
   grid-template-columns: 280px minmax(0, 1fr);
   min-height: 100vh;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .sidebar {
@@ -126,6 +131,7 @@ button {
   display: grid;
   gap: 18px;
   width: min(1180px, calc(100% - 32px));
+  max-width: 100%;
   margin: 0 auto;
   padding: 24px 0 32px;
 }
@@ -134,6 +140,8 @@ button {
 .stat-card,
 .panel,
 .login-card {
+  min-width: 0;
+  max-width: 100%;
   border: 1px solid rgba(148, 163, 184, 0.18);
   background:
     linear-gradient(145deg, rgba(15, 23, 42, 0.82), rgba(15, 23, 42, 0.62)),
@@ -268,6 +276,7 @@ button {
 .case-list {
   display: grid;
   gap: 10px;
+  min-width: 0;
 }
 
 .case-row {
@@ -276,6 +285,7 @@ button {
   gap: 12px;
   align-items: center;
   width: 100%;
+  min-width: 0;
   margin: 0;
   padding: 14px;
   border: 1px solid rgba(148, 163, 184, 0.14);
@@ -299,8 +309,13 @@ button {
 }
 
 .case-open-hint {
+  width: fit-content;
   grid-column: 1 / -1;
+  border: 1px solid rgba(34, 211, 238, 0.28);
+  border-radius: 999px;
+  padding: 7px 10px;
   color: #67e8f9 !important;
+  background: rgba(34, 211, 238, 0.08);
   font-size: 12px;
   font-weight: 850;
 }
@@ -563,7 +578,7 @@ button {
 
 .payment-option-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 10px;
 }
 
@@ -595,6 +610,7 @@ button {
 
 .payment-slider input {
   width: 100%;
+  min-width: 0;
   accent-color: #22d3ee;
 }
 
@@ -653,6 +669,7 @@ button {
 .monthly-table {
   display: grid;
   gap: 8px;
+  min-width: 0;
 }
 
 .monthly-table-head,
@@ -677,12 +694,26 @@ button {
 }
 
 .monthly-table-row strong {
+  min-width: 0;
   color: #f8fafc;
 }
 
 .monthly-table-row span {
+  min-width: 0;
   color: #cbd5e1;
   font-weight: 750;
+}
+
+.monthly-toggle {
+  display: none;
+  width: fit-content;
+  margin-top: 12px;
+  border: 1px solid rgba(34, 211, 238, 0.28);
+  border-radius: 999px;
+  padding: 11px 14px;
+  color: #020617;
+  background: linear-gradient(135deg, #22d3ee, #8b5cf6);
+  font-weight: 900;
 }
 
 .login-page {
@@ -802,9 +833,12 @@ button {
   .dashboard-grid,
   .debt-detail-list,
   .debt-timeline,
-  .payment-option-grid,
   .forecast-grid {
     grid-template-columns: 1fr;
+  }
+
+  .payment-option-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .timeline-summary-grid {
@@ -829,10 +863,55 @@ button {
 
   .monthly-table-row {
     grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 14px;
+  }
+
+  .monthly-table-row.extra-month {
+    display: none;
+  }
+
+  .monthly-table.show-all .monthly-table-row.extra-month {
+    display: grid;
+  }
+
+  .monthly-table-row strong {
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+    font-size: 16px;
+  }
+
+  .monthly-table-row span {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .monthly-table-row span::before {
+    color: #94a3b8;
+    content: attr(data-label);
+    font-weight: 850;
+  }
+
+  .monthly-toggle {
+    display: inline-flex;
+    justify-content: center;
+  }
+
+  .payment-slider {
+    min-width: 0;
   }
 
   .case-row {
+    gap: 14px;
     grid-template-columns: 1fr;
+    padding: 16px;
+  }
+
+  .case-open-hint {
+    width: 100%;
+    padding: 10px 12px;
+    text-align: center;
   }
 
   .risk-pill {
