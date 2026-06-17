@@ -397,6 +397,48 @@ button {
     rgba(2, 6, 23, 0.28);
 }
 
+.ai-action-plan {
+  display: grid;
+  gap: 14px;
+  margin-top: 14px;
+  border: 1px solid rgba(139, 92, 246, 0.24);
+  border-radius: 20px;
+  padding: 16px;
+  background:
+    radial-gradient(circle at top right, rgba(139, 92, 246, 0.14), transparent 42%),
+    rgba(2, 6, 23, 0.3);
+}
+
+.action-plan-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.action-plan-grid div {
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 16px;
+  padding: 12px;
+  background: rgba(2, 6, 23, 0.28);
+}
+
+.action-plan-wide {
+  grid-column: 1 / -1;
+}
+
+.action-plan-grid span {
+  display: block;
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.action-plan-grid strong {
+  display: block;
+  margin-top: 5px;
+  color: #f8fafc;
+}
+
 .timeline-summary-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -658,6 +700,7 @@ button {
   }
 
   .stats-grid,
+  .action-plan-grid,
   .dashboard-grid,
   .debt-detail-list,
   .debt-timeline,

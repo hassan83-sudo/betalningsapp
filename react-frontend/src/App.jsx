@@ -72,6 +72,11 @@ const dateFormatter = new Intl.DateTimeFormat("sv-SE", {
   year: "numeric",
 });
 
+const monthFormatter = new Intl.DateTimeFormat("sv-SE", {
+  month: "long",
+  year: "numeric",
+});
+
 const collectionTimelineSteps = [
   "Idag",
   "Påminnelse",
@@ -86,6 +91,10 @@ function formatCurrency(value) {
 
 function formatDate(value) {
   return dateFormatter.format(new Date(value));
+}
+
+function formatMonth(value) {
+  return monthFormatter.format(value);
 }
 
 function getRiskClass(risk) {
@@ -141,6 +150,40 @@ function makeTimelineSummary(item) {
   };
 }
 
+function makeActionPlan(item, cases) {
+  const rankedCases = [...cases].sort((a, b) => {
+    const riskScore = { "Hög": 0, "Medel": 1, "Låg": 2 };
+    const riskDifference = riskScore[a.risk] - riskScore[b.risk];
+
+    if (riskDifference !== 0) {
+      return riskDifference;
+    }
+
+    return new Date(a.dueDate) - new Date(b.dueDate);
+  });
+  const priority = rankedCases.findIndex((caseItem) => caseItem.id === item.id) + 1;
+  const monthlyPayment = Math.max(1, item.suggestedPlan - item.interestMonthly);
+  const debtFreeMonths = Math.ceil(item.amount / monthlyPayment);
+  const debtFreeDate = new Date();
+
+  debtFreeDate.setMonth(debtFreeDate.getMonth() + debtFreeMonths);
+
+  const recommendation =
+    item.risk === "Hög"
+      ? "Kontakta inkassobolaget innan förfallodatum och föreslå betalningsplanen direkt."
+      : item.risk === "Medel"
+        ? "Säkra en avbetalningsplan innan ärendet riskerar att gå vidare."
+        : "Betala eller bekräfta plan i god tid så ärendet inte eskalerar.";
+
+  return {
+    debtFreeMonth: formatMonth(debtFreeDate),
+    priority,
+    recommendation,
+    suggestedPayment: item.suggestedPlan,
+    totalCases: cases.length,
+  };
+}
+
 function makeForecast(cases, monthlyPayment) {
   const totalDebt = cases.reduce((sum, item) => sum + item.amount, 0);
   const monthlyFees = cases.reduce((sum, item) => sum + item.interestMonthly, 0);
@@ -166,6 +209,7 @@ export default function App() {
   const selectedCase =
     collectionCases.find((item) => item.id === selectedCaseId) ?? collectionCases[0];
   const selectedTimeline = makeTimelineSummary(selectedCase);
+  const selectedActionPlan = makeActionPlan(selectedCase, collectionCases);
 
   const forecast = useMemo(
     () => makeForecast(collectionCases, Number(monthlyPayment) || 0),
@@ -363,6 +407,45 @@ export default function App() {
                 <div className="recommended-action">
                   <span>Rekommenderad åtgärd</span>
                   <strong>{selectedTimeline.recommendedAction}</strong>
+                </div>
+              </section>
+
+              <section className="ai-action-plan" aria-label="AI Handlingsplan">
+                <div className="panel-heading">
+                  <div>
+                    <p className="eyebrow">AI Handlingsplan</p>
+                    <h2>Nästa bästa steg</h2>
+                  </div>
+                  <span className={`risk-pill ${getRiskClass(selectedCase.risk)}`}>
+                    {selectedCase.risk}
+                  </span>
+                </div>
+
+                <div className="action-plan-grid">
+                  <div>
+                    <span>Risknivå</span>
+                    <strong>{selectedCase.risk}</strong>
+                  </div>
+                  <div>
+                    <span>Prioritet</span>
+                    <strong>
+                      {selectedActionPlan.priority} av {selectedActionPlan.totalCases} ärenden
+                    </strong>
+                  </div>
+                  <div className="action-plan-wide">
+                    <span>Rekommenderad åtgärd</span>
+                    <strong>{selectedActionPlan.recommendation}</strong>
+                  </div>
+                  <div>
+                    <span>Förslag på avbetalning</span>
+                    <strong>
+                      {formatCurrency(selectedActionPlan.suggestedPayment)} / mån
+                    </strong>
+                  </div>
+                  <div>
+                    <span>Beräknad skuldfri månad</span>
+                    <strong>{selectedActionPlan.debtFreeMonth}</strong>
+                  </div>
                 </div>
               </section>
 
