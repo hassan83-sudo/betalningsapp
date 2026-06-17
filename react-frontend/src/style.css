@@ -556,6 +556,33 @@ button {
   font-weight: 900;
 }
 
+.payment-plan-controls {
+  display: grid;
+  gap: 14px;
+}
+
+.payment-option-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.payment-option {
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 16px;
+  padding: 12px;
+  color: #cbd5e1;
+  background: rgba(2, 6, 23, 0.3);
+  font-weight: 850;
+}
+
+.payment-option.active,
+.payment-option:hover {
+  border-color: rgba(34, 211, 238, 0.42);
+  color: #020617;
+  background: linear-gradient(135deg, #22d3ee, #8b5cf6);
+}
+
 .payment-slider {
   display: grid;
   gap: 12px;
@@ -585,6 +612,32 @@ button {
   margin-top: 6px;
   color: #f8fafc;
   font-size: 20px;
+}
+
+.payment-recommendation {
+  margin-top: 14px;
+  border: 1px solid rgba(139, 92, 246, 0.22);
+  border-radius: 16px;
+  padding: 12px;
+  background:
+    radial-gradient(circle at top right, rgba(139, 92, 246, 0.12), transparent 42%),
+    rgba(2, 6, 23, 0.28);
+}
+
+.payment-recommendation span,
+.payment-recommendation strong {
+  display: block;
+}
+
+.payment-recommendation span {
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.payment-recommendation strong {
+  margin-top: 5px;
+  color: #f8fafc;
 }
 
 .login-page {
@@ -704,6 +757,7 @@ button {
   .dashboard-grid,
   .debt-detail-list,
   .debt-timeline,
+  .payment-option-grid,
   .forecast-grid {
     grid-template-columns: 1fr;
   }

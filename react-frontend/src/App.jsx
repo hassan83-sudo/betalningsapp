@@ -85,6 +85,8 @@ const collectionTimelineSteps = [
   "Kronofogden",
 ];
 
+const paymentOptions = [1000, 2000, 3000, 4000];
+
 function formatCurrency(value) {
   return currencyFormatter.format(value);
 }
@@ -189,14 +191,25 @@ function makeForecast(cases, monthlyPayment) {
   const monthlyFees = cases.reduce((sum, item) => sum + item.interestMonthly, 0);
   const effectivePayment = Math.max(0, monthlyPayment - monthlyFees);
   const months = effectivePayment > 0 ? Math.ceil(totalDebt / effectivePayment) : null;
+  const afterThreeMonths = Math.max(0, totalDebt + monthlyFees * 3 - monthlyPayment * 3);
   const afterSixMonths = Math.max(0, totalDebt + monthlyFees * 6 - monthlyPayment * 6);
+  const recommendation =
+    !months
+      ? "Betalningen täcker inte demoavgifterna. Höj månadsbeloppet innan en plan föreslås."
+      : months <= 6
+        ? "Stark plan. Du minskar skulden snabbt om beloppet är hållbart i vardagen."
+        : months <= 12
+          ? "Rimlig plan. Prioritera hög risk först och bekräfta avbetalning skriftligt."
+          : "Överväg att höja månadsbetalningen eller förhandla bort avgifter för kortare skuldtid.";
 
   return {
+    afterThreeMonths,
     totalDebt,
     monthlyFees,
     effectivePayment,
     months,
     afterSixMonths,
+    recommendation,
   };
 }
 
@@ -513,42 +526,68 @@ export default function App() {
             <article className="panel forecast-panel" id="prognos">
               <div className="panel-heading">
                 <div>
-                  <p className="eyebrow">Prognos</p>
-                  <h2>Vad händer om du betalar X kr/mån?</h2>
+                  <p className="eyebrow">Min betalningsplan</p>
+                  <h2>Välj månadsbetalning</h2>
                 </div>
               </div>
 
-              <label className="payment-slider">
-                <span>Månadsbetalning: {formatCurrency(Number(monthlyPayment) || 0)}</span>
-                <input
-                  type="range"
-                  min="500"
-                  max="12000"
-                  step="250"
-                  value={monthlyPayment}
-                  onChange={(event) => setMonthlyPayment(Number(event.target.value))}
-                />
-              </label>
+              <div className="payment-plan-controls">
+                <div className="payment-option-grid">
+                  {paymentOptions.map((option) => (
+                    <button
+                      className={
+                        Number(monthlyPayment) === option
+                          ? "payment-option active"
+                          : "payment-option"
+                      }
+                      key={option}
+                      type="button"
+                      onClick={() => setMonthlyPayment(option)}
+                    >
+                      {formatCurrency(option)} / mån
+                    </button>
+                  ))}
+                </div>
+
+                <label className="payment-slider">
+                  <span>
+                    Total månadsbetalning: {formatCurrency(Number(monthlyPayment) || 0)}
+                  </span>
+                  <input
+                    type="range"
+                    min="500"
+                    max="12000"
+                    step="250"
+                    value={monthlyPayment}
+                    onChange={(event) => setMonthlyPayment(Number(event.target.value))}
+                  />
+                </label>
+              </div>
 
               <div className="forecast-grid">
                 <div>
-                  <span>Avgifter/ränta i demo</span>
-                  <strong>{formatCurrency(forecast.monthlyFees)} / mån</strong>
-                </div>
-                <div>
-                  <span>Effektiv amortering</span>
-                  <strong>{formatCurrency(forecast.effectivePayment)} / mån</strong>
-                </div>
-                <div>
-                  <span>Beräknad skuldfri tid</span>
+                  <span>Beräknad tid tills skuldfri</span>
                   <strong>
                     {forecast.months ? `${forecast.months} månader` : "Betalning för låg"}
                   </strong>
                 </div>
                 <div>
+                  <span>Skuld efter 3 månader</span>
+                  <strong>{formatCurrency(forecast.afterThreeMonths)}</strong>
+                </div>
+                <div>
                   <span>Skuld efter 6 månader</span>
                   <strong>{formatCurrency(forecast.afterSixMonths)}</strong>
                 </div>
+                <div>
+                  <span>Total månadsbetalning</span>
+                  <strong>{formatCurrency(Number(monthlyPayment) || 0)}</strong>
+                </div>
+              </div>
+
+              <div className="payment-recommendation">
+                <span>Kort rekommendation</span>
+                <strong>{forecast.recommendation}</strong>
               </div>
             </article>
           </section>
