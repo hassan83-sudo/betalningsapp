@@ -1,739 +1,312 @@
-import React, { useEffect, useState } from "react";
-import Customers from "./pages/Customers";
-import Reports from "./pages/Reports";
-import Subscriptions from "./pages/Subscriptions";
-import Settings from "./pages/Settings";
-import Notifications from "./pages/Notifications";
-import Analytics from "./pages/Analytics";
-import Billing from "./pages/Billing";
-import Team from "./pages/Team";
+import { useMemo, useState } from "react";
 import Login from "./pages/Login";
-import { lightTheme, darkTheme } from "./styles/theme";
 
-const API_URL =
-  import.meta.env.VITE_API_URL ||
-  "http://localhost:3000";
+const collectionCases = [
+  {
+    id: "KR-24018",
+    company: "Svea Inkasso",
+    creditor: "Elbolaget Nord",
+    amount: 4860,
+    status: "Inkasso",
+    dueDate: "2026-06-28",
+    risk: "Hög",
+    suggestedPlan: 1200,
+    interestMonthly: 85,
+  },
+  {
+    id: "KR-24021",
+    company: "Alektum Group",
+    creditor: "Mobiloperatör",
+    amount: 2340,
+    status: "Påminnelse",
+    dueDate: "2026-07-04",
+    risk: "Medel",
+    suggestedPlan: 650,
+    interestMonthly: 35,
+  },
+  {
+    id: "KR-24027",
+    company: "Intrum",
+    creditor: "Delbetalning butik",
+    amount: 9180,
+    status: "Avbetalning möjlig",
+    dueDate: "2026-07-16",
+    risk: "Medel",
+    suggestedPlan: 1800,
+    interestMonthly: 120,
+  },
+  {
+    id: "KR-24032",
+    company: "Lowell",
+    creditor: "Bredbandstjänst",
+    amount: 1280,
+    status: "Förfaller snart",
+    dueDate: "2026-06-22",
+    risk: "Låg",
+    suggestedPlan: 450,
+    interestMonthly: 20,
+  },
+];
+
+const currencyFormatter = new Intl.NumberFormat("sv-SE", {
+  maximumFractionDigits: 0,
+  style: "currency",
+  currency: "SEK",
+});
+
+const dateFormatter = new Intl.DateTimeFormat("sv-SE", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+});
+
+function formatCurrency(value) {
+  return currencyFormatter.format(value);
+}
+
+function formatDate(value) {
+  return dateFormatter.format(new Date(value));
+}
+
+function getRiskClass(risk) {
+  if (risk === "Hög") {
+    return "risk-high";
+  }
+
+  if (risk === "Medel") {
+    return "risk-medium";
+  }
+
+  return "risk-low";
+}
+
+function makeForecast(cases, monthlyPayment) {
+  const totalDebt = cases.reduce((sum, item) => sum + item.amount, 0);
+  const monthlyFees = cases.reduce((sum, item) => sum + item.interestMonthly, 0);
+  const effectivePayment = Math.max(0, monthlyPayment - monthlyFees);
+  const months = effectivePayment > 0 ? Math.ceil(totalDebt / effectivePayment) : null;
+  const afterSixMonths = Math.max(0, totalDebt + monthlyFees * 6 - monthlyPayment * 6);
+
+  return {
+    totalDebt,
+    monthlyFees,
+    effectivePayment,
+    months,
+    afterSixMonths,
+  };
+}
 
 export default function App() {
-  const [page, setPage] = useState("login");
-  const [loggedIn, setLoggedIn] =
-    useState(false);
+  const [loggedIn, setLoggedIn] = useState(false);
+  const [monthlyPayment, setMonthlyPayment] = useState(2500);
+  const [selectedCaseId, setSelectedCaseId] = useState(collectionCases[0].id);
 
-  const [darkMode, setDarkMode] =
-    useState(false);
+  const selectedCase =
+    collectionCases.find((item) => item.id === selectedCaseId) ?? collectionCases[0];
 
-  const [invoices, setInvoices] =
-    useState([]);
+  const forecast = useMemo(
+    () => makeForecast(collectionCases, Number(monthlyPayment) || 0),
+    [monthlyPayment],
+  );
 
-  const [message, setMessage] =
-    useState("");
-
-  const [showMessage, setShowMessage] =
-    useState(false);
-
-  const [search, setSearch] =
-    useState("");
-
-  const [filter, setFilter] =
-    useState("all");
-
-  const theme = darkMode
-    ? darkTheme
-    : lightTheme;
-
-  const [form, setForm] = useState({
-    customerName: "",
-    customerEmail: "",
-    amount: "",
-    deadline: "",
-  });
-
-  useEffect(() => {
-    if (loggedIn) {
-      fetchInvoices();
-    }
-  }, [loggedIn]);
-
-  useEffect(() => {
-    if (message) {
-      setShowMessage(true);
-
-      const timer = setTimeout(() => {
-        setShowMessage(false);
-      }, 3000);
-
-      return () => clearTimeout(timer);
-    }
-  }, [message]);
-
-  async function fetchInvoices() {
-    try {
-      const res = await fetch(
-        `${API_URL}/api/invoices`
-      );
-
-      const data = await res.json();
-
-      setInvoices(data);
-    } catch {
-      setMessage(
-        "Kunde inte hämta fakturor"
-      );
-    }
-  }
-
-  function handleChange(e) {
-    setForm({
-      ...form,
-      [e.target.name]:
-        e.target.value,
-    });
-  }
-
-  async function createInvoice(e) {
-    e.preventDefault();
-
-    const payload = {
-      customerName:
-        form.customerName,
-      customerEmail:
-        form.customerEmail,
-      amount: Number(form.amount),
-      deadline: form.deadline,
-    };
-
-    const res = await fetch(
-      `${API_URL}/api/invoices`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type":
-            "application/json",
-        },
-        body: JSON.stringify(payload),
-      }
-    );
-
-    if (!res.ok) {
-      setMessage(
-        "Kunde inte skapa faktura"
-      );
-
-      return;
-    }
-
-    setMessage("Faktura skapad");
-
-    setForm({
-      customerName: "",
-      customerEmail: "",
-      amount: "",
-      deadline: "",
-    });
-
-    fetchInvoices();
-  }
-
-  const totalAmount =
-    invoices.reduce(
-      (sum, invoice) =>
-        sum +
-        Number(invoice.amount || 0),
-      0
-    );
-
-  const unpaidInvoices =
-    invoices.filter(
-      (invoice) => !invoice.paid
-    );
-
-  const paidInvoices =
-    invoices.filter(
-      (invoice) => invoice.paid
-    );
-
-  const unpaidAmount =
-    unpaidInvoices.reduce(
-      (sum, invoice) =>
-        sum +
-        Number(invoice.amount || 0),
-      0
-    );
-
-  const paidPercentage =
-    invoices.length
-      ? Math.round(
-          (paidInvoices.length /
-            invoices.length) *
-            100
-        )
-      : 0;
-
-  const progressFillDynamic = {
-    height: "100%",
-    width: `${paidPercentage}%`,
-    background:
-      "linear-gradient(90deg,#2563eb,#7c3aed)",
-  };
-
-  const filteredInvoices =
-    invoices.filter((invoice) => {
-      const name =
-        invoice.customerName || "";
-
-      const email =
-        invoice.customerEmail || "";
-
-      const matchesSearch =
-        name
-          .toLowerCase()
-          .includes(
-            search.toLowerCase()
-          ) ||
-        email
-          .toLowerCase()
-          .includes(
-            search.toLowerCase()
-          );
-
-      const matchesFilter =
-        filter === "all" ||
-        (filter === "paid" &&
-          invoice.paid) ||
-        (filter === "unpaid" &&
-          !invoice.paid);
-
-      return (
-        matchesSearch &&
-        matchesFilter
-      );
-    });
+  const highRiskCases = collectionCases.filter((item) => item.risk === "Hög");
+  const nextDueCase = [...collectionCases].sort(
+    (a, b) => new Date(a.dueDate) - new Date(b.dueDate),
+  )[0];
+  const totalSuggestedPlan = collectionCases.reduce(
+    (sum, item) => sum + item.suggestedPlan,
+    0,
+  );
 
   if (!loggedIn) {
-    return (
-      <Login
-        onLogin={() => {
-          setLoggedIn(true);
-          setPage("dashboard");
-        }}
-      />
-    );
-  }
-
-  if (page === "customers") {
-    return <Customers />;
-  }
-
-  if (page === "reports") {
-    return <Reports />;
-  }
-
-  if (page === "subscriptions") {
-    return <Subscriptions />;
-  }
-
-  if (page === "settings") {
-    return <Settings />;
-  }
-
-  if (page === "notifications") {
-    return <Notifications />;
-  }
-
-  if (page === "analytics") {
-    return <Analytics />;
-  }
-
-  if (page === "billing") {
-    return <Billing />;
-  }
-
-  if (page === "team") {
-    return <Team />;
+    return <Login onLogin={() => setLoggedIn(true)} />;
   }
 
   return (
-    <div
-      style={{
-        ...appShell,
-        background:
-          theme.background,
-      }}
-    >
-      <aside style={sidebar}>
-        <div style={brandBox}>
-          <div style={brandIcon}>
-            K
-          </div>
-
+    <div className="app-shell">
+      <aside className="sidebar">
+        <div className="brand">
+          <div className="brand-icon">K</div>
           <div>
-            <h2 style={brandTitle}>
-              KronoPay
-            </h2>
-
-            <p style={brandSub}>
-              Admin
-            </p>
+            <strong>KronoPay</strong>
+            <span>Skuldkoll & inkasso</span>
           </div>
         </div>
 
-        <nav style={nav}>
-          <div
-            onClick={() =>
-              setPage("dashboard")
-            }
-            style={
-              page === "dashboard"
-                ? navItemActive
-                : navItem
-            }
-          >
-            Dashboard
-          </div>
-
-          <div
-            onClick={() =>
-              setPage("customers")
-            }
-            style={
-              page === "customers"
-                ? navItemActive
-                : navItem
-            }
-          >
-            Kunder
-          </div>
-
-          <div
-            onClick={() =>
-              setPage("reports")
-            }
-            style={
-              page === "reports"
-                ? navItemActive
-                : navItem
-            }
-          >
-            Rapporter
-          </div>
-
-          <div
-            onClick={() =>
-              setPage(
-                "subscriptions"
-              )
-            }
-            style={
-              page ===
-              "subscriptions"
-                ? navItemActive
-                : navItem
-            }
-          >
-            Subscriptions
-          </div>
-
-          <div
-            onClick={() =>
-              setPage(
-                "notifications"
-              )
-            }
-            style={
-              page ===
-              "notifications"
-                ? navItemActive
-                : navItem
-            }
-          >
-            Notifications
-          </div>
-
-          <div
-            onClick={() =>
-              setPage("analytics")
-            }
-            style={
-              page === "analytics"
-                ? navItemActive
-                : navItem
-            }
-          >
-            Analytics
-          </div>
-
-          <div
-            onClick={() =>
-              setPage("billing")
-            }
-            style={
-              page === "billing"
-                ? navItemActive
-                : navItem
-            }
-          >
-            Billing
-          </div>
-
-          <div
-            onClick={() =>
-              setPage("team")
-            }
-            style={
-              page === "team"
-                ? navItemActive
-                : navItem
-            }
-          >
-            Team
-          </div>
-
-          <div
-            onClick={() =>
-              setPage("settings")
-            }
-            style={
-              page === "settings"
-                ? navItemActive
-                : navItem
-            }
-          >
-            Settings
-          </div>
-
-          <div
-            onClick={() =>
-              setLoggedIn(false)
-            }
-            style={logoutButton}
-          >
-            Logout
-          </div>
+        <nav className="sidebar-nav" aria-label="Huvudnavigation">
+          <a href="#oversikt">Översikt</a>
+          <a href="#arenden">Inkassoärenden</a>
+          <a href="#prognos">Prognos</a>
+          <a href="#plan">Avbetalningsplan</a>
         </nav>
+
+        <button className="logout-button" type="button" onClick={() => setLoggedIn(false)}>
+          Logga ut
+        </button>
       </aside>
 
-      <main style={main}>
-        <header style={header}>
+      <main className="main-content">
+        <section className="hero-card" id="oversikt">
           <div>
-            <h1
-              style={{
-                ...pageTitle,
-                color:
-                  theme.text,
-              }}
-            >
-              Dashboard
-            </h1>
-
-            <p
-              style={{
-                ...pageSub,
-                color:
-                  theme.subtext,
-              }}
-            >
-              Fakturor,
-              kundlänkar och
-              betalningar
+            <p className="eyebrow">Demo-inloggning aktiv</p>
+            <h1>Din skuldkoll</h1>
+            <p>
+              Samlad demoöversikt över inkassoärenden, risknivåer och möjliga
+              avbetalningsplaner. BankID och riktiga integrationer kopplas senare.
             </p>
           </div>
-
-          <div
-            style={{
-              display: "flex",
-              gap: 10,
-            }}
-          >
-            <button
-              onClick={
-                fetchInvoices
-              }
-              style={topButton}
-            >
-              Uppdatera
-            </button>
-
-            <button
-              onClick={() =>
-                setDarkMode(
-                  !darkMode
-                )
-              }
-              style={topButton}
-            >
-              {darkMode
-                ? "Light"
-                : "Dark"}
-            </button>
+          <div className="bankid-preview">
+            <span>BankID senare</span>
+            <strong>Demo</strong>
           </div>
-        </header>
+        </section>
 
-        {showMessage && (
-          <div style={messageBoxTop}>
-            {message}
-          </div>
-        )}
+        <section className="stats-grid" aria-label="Skuldöversikt">
+          <article className="stat-card">
+            <span>Total skuld</span>
+            <strong>{formatCurrency(forecast.totalDebt)}</strong>
+            <small>{collectionCases.length} aktiva ärenden</small>
+          </article>
+          <article className="stat-card">
+            <span>Hög risk</span>
+            <strong>{highRiskCases.length}</strong>
+            <small>Prioritera ärenden nära förfallodatum</small>
+          </article>
+          <article className="stat-card">
+            <span>Närmast förfall</span>
+            <strong>{formatDate(nextDueCase.dueDate)}</strong>
+            <small>{nextDueCase.company}</small>
+          </article>
+          <article className="stat-card">
+            <span>Föreslagen månadsplan</span>
+            <strong>{formatCurrency(totalSuggestedPlan)}</strong>
+            <small>Summerat från demoärenden</small>
+          </article>
+        </section>
 
-        <section style={statsGrid}>
-          <div
-            style={{
-              ...statCard,
-              background:
-                theme.card,
-            }}
-          >
-            <p
-              style={{
-                ...statLabel,
-                color:
-                  theme.subtext,
-              }}
-            >
-              Totalt
-              fakturabelopp
-            </p>
+        <section className="dashboard-grid">
+          <article className="panel cases-panel" id="arenden">
+            <div className="panel-heading">
+              <div>
+                <p className="eyebrow">Inkassoärenden</p>
+                <h2>Alla skulder på ett ställe</h2>
+              </div>
+              <span>{collectionCases.length} ärenden</span>
+            </div>
 
-            <h2
-              style={{
-                ...statValue,
-                color:
-                  theme.text,
-              }}
-            >
-              {totalAmount} kr
-            </h2>
-          </div>
+            <div className="case-list">
+              {collectionCases.map((item) => (
+                <button
+                  className={item.id === selectedCase.id ? "case-row active" : "case-row"}
+                  key={item.id}
+                  type="button"
+                  onClick={() => setSelectedCaseId(item.id)}
+                >
+                  <span>
+                    <strong>{item.company}</strong>
+                    <small>{item.creditor}</small>
+                  </span>
+                  <span>
+                    <strong>{formatCurrency(item.amount)}</strong>
+                    <small>{item.status}</small>
+                  </span>
+                  <span>
+                    <strong>{formatDate(item.dueDate)}</strong>
+                    <small>Förfallodatum</small>
+                  </span>
+                  <span className={`risk-pill ${getRiskClass(item.risk)}`}>
+                    {item.risk}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </article>
 
-          <div
-            style={{
-              ...statCard,
-              background:
-                theme.card,
-            }}
-          >
-            <p
-              style={{
-                ...statLabel,
-                color:
-                  theme.subtext,
-              }}
-            >
-              Obetalt belopp
-            </p>
+          <article className="panel detail-panel" id="plan">
+            <div className="panel-heading">
+              <div>
+                <p className="eyebrow">Avbetalningsplan</p>
+                <h2>{selectedCase.company}</h2>
+              </div>
+              <span>{selectedCase.id}</span>
+            </div>
 
-            <h2
-              style={{
-                ...statValue,
-                color:
-                  theme.text,
-              }}
-            >
-              {unpaidAmount} kr
-            </h2>
-          </div>
+            <dl className="detail-list">
+              <div>
+                <dt>Inkassobolag</dt>
+                <dd>{selectedCase.company}</dd>
+              </div>
+              <div>
+                <dt>Ursprunglig fordringsägare</dt>
+                <dd>{selectedCase.creditor}</dd>
+              </div>
+              <div>
+                <dt>Belopp</dt>
+                <dd>{formatCurrency(selectedCase.amount)}</dd>
+              </div>
+              <div>
+                <dt>Status</dt>
+                <dd>{selectedCase.status}</dd>
+              </div>
+              <div>
+                <dt>Föreslagen betalning</dt>
+                <dd>{formatCurrency(selectedCase.suggestedPlan)} / mån</dd>
+              </div>
+            </dl>
 
-          <div
-            style={{
-              ...statCard,
-              background:
-                theme.card,
-            }}
-          >
-            <p
-              style={{
-                ...statLabel,
-                color:
-                  theme.subtext,
-              }}
-            >
-              Obetalda
-              fakturor
-            </p>
+            <div className="plan-note">
+              <strong>Förslag</strong>
+              <p>
+                Kontakta inkassobolaget och föreslå en plan runt{" "}
+                {formatCurrency(selectedCase.suggestedPlan)} per månad. Detta är
+                bara demo och ingen juridisk rådgivning.
+              </p>
+            </div>
+          </article>
 
-            <h2
-              style={{
-                ...statValue,
-                color:
-                  theme.text,
-              }}
-            >
-              {
-                unpaidInvoices.length
-              }
-            </h2>
-          </div>
+          <article className="panel forecast-panel" id="prognos">
+            <div className="panel-heading">
+              <div>
+                <p className="eyebrow">Prognos</p>
+                <h2>Vad händer om du betalar X kr/mån?</h2>
+              </div>
+            </div>
 
-          <div
-            style={{
-              ...statCard,
-              background:
-                theme.card,
-            }}
-          >
-            <p
-              style={{
-                ...statLabel,
-                color:
-                  theme.subtext,
-              }}
-            >
-              Betalda
-              fakturor
-            </p>
+            <label className="payment-slider">
+              <span>Månadsbetalning: {formatCurrency(Number(monthlyPayment) || 0)}</span>
+              <input
+                type="range"
+                min="500"
+                max="12000"
+                step="250"
+                value={monthlyPayment}
+                onChange={(event) => setMonthlyPayment(Number(event.target.value))}
+              />
+            </label>
 
-            <h2
-              style={{
-                ...statValue,
-                color:
-                  theme.text,
-              }}
-            >
-              {
-                paidInvoices.length
-              }
-            </h2>
-          </div>
+            <div className="forecast-grid">
+              <div>
+                <span>Avgifter/ränta i demo</span>
+                <strong>{formatCurrency(forecast.monthlyFees)} / mån</strong>
+              </div>
+              <div>
+                <span>Effektiv amortering</span>
+                <strong>{formatCurrency(forecast.effectivePayment)} / mån</strong>
+              </div>
+              <div>
+                <span>Beräknad skuldfri tid</span>
+                <strong>
+                  {forecast.months ? `${forecast.months} månader` : "Betalning för låg"}
+                </strong>
+              </div>
+              <div>
+                <span>Skuld efter 6 månader</span>
+                <strong>{formatCurrency(forecast.afterSixMonths)}</strong>
+              </div>
+            </div>
+          </article>
         </section>
       </main>
     </div>
   );
 }
-
-const appShell = {
-  display: "grid",
-  gridTemplateColumns:
-    "260px 1fr",
-  minHeight: "100vh",
-  fontFamily:
-    "Inter, Arial, sans-serif",
-};
-
-const sidebar = {
-  background: "#0f172a",
-  color: "white",
-  padding: 24,
-  display: "flex",
-  flexDirection: "column",
-  gap: 28,
-};
-
-const brandBox = {
-  display: "flex",
-  alignItems: "center",
-  gap: 12,
-};
-
-const brandIcon = {
-  width: 42,
-  height: 42,
-  borderRadius: 14,
-  background: "#2563eb",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  fontWeight: "bold",
-  fontSize: 22,
-};
-
-const brandTitle = {
-  margin: 0,
-  fontSize: 20,
-};
-
-const brandSub = {
-  margin: 0,
-  color: "#94a3b8",
-  fontSize: 13,
-};
-
-const nav = {
-  display: "grid",
-  gap: 10,
-};
-
-const navItem = {
-  padding: "12px 14px",
-  borderRadius: 12,
-  color: "#cbd5e1",
-  cursor: "pointer",
-};
-
-const navItemActive = {
-  padding: "12px 14px",
-  borderRadius: 12,
-  background: "#1d4ed8",
-  color: "white",
-  fontWeight: "bold",
-  cursor: "pointer",
-};
-
-const logoutButton = {
-  padding: "12px 14px",
-  borderRadius: 12,
-  background: "#dc2626",
-  color: "white",
-  cursor: "pointer",
-  marginTop: 12,
-};
-
-const main = {
-  padding: 28,
-};
-
-const header = {
-  display: "flex",
-  justifyContent:
-    "space-between",
-  alignItems: "center",
-  marginBottom: 24,
-};
-
-const pageTitle = {
-  margin: 0,
-  fontSize: 32,
-};
-
-const pageSub = {
-  margin: "6px 0 0",
-};
-
-const topButton = {
-  border: "none",
-  background: "#2563eb",
-  color: "white",
-  padding: "11px 15px",
-  borderRadius: 12,
-  cursor: "pointer",
-};
-
-const statsGrid = {
-  display: "grid",
-  gridTemplateColumns:
-    "repeat(auto-fit, minmax(190px, 1fr))",
-  gap: 18,
-  marginBottom: 24,
-};
-
-const statCard = {
-  padding: 22,
-  borderRadius: 20,
-  boxShadow:
-    "0 12px 30px rgba(15,23,42,0.08)",
-};
-
-const statLabel = {
-  margin: 0,
-  fontSize: 14,
-};
-
-const statValue = {
-  margin: "10px 0 0",
-};
-
-const messageBoxTop = {
-  background: "#dbeafe",
-  color: "#1e3a8a",
-  padding: 13,
-  borderRadius: 12,
-  marginBottom: 18,
-};
