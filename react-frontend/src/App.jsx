@@ -287,6 +287,55 @@ function makeForecast(cases, monthlyPayment) {
   };
 }
 
+function makeFutureScenarios(cases) {
+  const totalDebt = cases.reduce((sum, item) => sum + item.amount, 0);
+  const recommendedPayment = cases.reduce((sum, item) => sum + item.suggestedPlan, 0);
+  const aggressivePayment = Math.round(recommendedPayment * 1.5);
+  const monthlyFees = cases.reduce((sum, item) => sum + item.interestMonthly, 0);
+
+  return [
+    {
+      aiComment: "Skulden riskerar att gå vidare till nästa steg.",
+      costMultiplier: 1.22,
+      development: "Skulden kan växa och flera ärenden kan eskalera.",
+      monthlyPayment: 0,
+      name: "Betalar inget",
+      risk: "Hög",
+    },
+    {
+      aiComment: "Rimlig balans mellan ekonomi och återbetalning.",
+      costMultiplier: 1.08,
+      development: "Skulden minskar stegvis om planen hålls varje månad.",
+      monthlyPayment: recommendedPayment,
+      name: "Betalar rekommenderat",
+      risk: "Medel",
+    },
+    {
+      aiComment: "Snabbaste vägen till skuldfrihet.",
+      costMultiplier: 1.03,
+      development: "Skulden minskar snabbt och risken sjunker tydligt.",
+      monthlyPayment: aggressivePayment,
+      name: "Betalar aggressivt",
+      risk: "Låg",
+    },
+  ].map((scenario) => {
+    const effectivePayment = Math.max(0, scenario.monthlyPayment - monthlyFees);
+    const months =
+      effectivePayment > 0 ? Math.ceil(totalDebt / effectivePayment) : null;
+    const debtFreeDate = months ? new Date() : null;
+
+    if (debtFreeDate) {
+      debtFreeDate.setMonth(debtFreeDate.getMonth() + months);
+    }
+
+    return {
+      ...scenario,
+      debtFreeMonth: debtFreeDate ? formatMonth(debtFreeDate) : "Ej beräknad",
+      totalCost: Math.round(totalDebt * scenario.costMultiplier),
+    };
+  });
+}
+
 export default function App() {
   const [loggedIn, setLoggedIn] = useState(false);
   const [monthlyPayment, setMonthlyPayment] = useState(2500);
@@ -303,6 +352,7 @@ export default function App() {
     () => makeForecast(collectionCases, Number(monthlyPayment) || 0),
     [monthlyPayment],
   );
+  const futureScenarios = useMemo(() => makeFutureScenarios(collectionCases), []);
   const prioritizedCases = useMemo(() => getPrioritizedCases(collectionCases), []);
 
   const highRiskCases = collectionCases.filter((item) => item.risk === "Hög");
@@ -646,6 +696,49 @@ export default function App() {
                         <span>Potentiell konsekvens</span>
                         <p>{makePriorityConsequence(item)}</p>
                       </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </article>
+
+            <article className="panel future-panel" id="framtidsprognos">
+              <div className="panel-heading">
+                <div>
+                  <p className="eyebrow">Framtidsprognos</p>
+                  <h2>Tre möjliga vägar framåt</h2>
+                </div>
+                <span>Demo</span>
+              </div>
+
+              <div className="future-scenario-grid">
+                {futureScenarios.map((scenario) => (
+                  <article className="future-scenario-card" key={scenario.name}>
+                    <div className="future-scenario-top">
+                      <strong>{scenario.name}</strong>
+                      <span className={`risk-pill ${getRiskClass(scenario.risk)}`}>
+                        {scenario.risk}
+                      </span>
+                    </div>
+
+                    <dl>
+                      <div>
+                        <dt>Beräknad skuldfri månad</dt>
+                        <dd>{scenario.debtFreeMonth}</dd>
+                      </div>
+                      <div>
+                        <dt>Total kostnad</dt>
+                        <dd>{formatCurrency(scenario.totalCost)}</dd>
+                      </div>
+                      <div>
+                        <dt>Förväntad utveckling</dt>
+                        <dd>{scenario.development}</dd>
+                      </div>
+                    </dl>
+
+                    <div className="future-ai-comment">
+                      <span>Kort AI-kommentar</span>
+                      <p>{scenario.aiComment}</p>
                     </div>
                   </article>
                 ))}

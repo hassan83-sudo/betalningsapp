@@ -225,6 +225,7 @@ button {
 
 .cases-panel,
 .priority-panel,
+.future-panel,
 .forecast-panel {
   grid-column: 1 / -1;
 }
@@ -417,6 +418,64 @@ button {
 .priority-copy p {
   margin: 6px 0 0;
   color: #cbd5e1;
+  line-height: 1.5;
+}
+
+.future-scenario-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.future-scenario-card {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 20px;
+  padding: 14px;
+  background:
+    radial-gradient(circle at top right, rgba(34, 211, 238, 0.08), transparent 38%),
+    rgba(2, 6, 23, 0.28);
+}
+
+.future-scenario-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.future-scenario-top > strong {
+  color: #f8fafc;
+  font-size: 18px;
+}
+
+.future-scenario-card dl {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.future-scenario-card dl div,
+.future-ai-comment {
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 16px;
+  padding: 12px;
+  background: rgba(2, 6, 23, 0.24);
+}
+
+.future-scenario-card dt,
+.future-ai-comment span {
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.future-scenario-card dd,
+.future-ai-comment p {
+  margin: 6px 0 0;
+  color: #f8fafc;
   line-height: 1.5;
 }
 
@@ -910,6 +969,7 @@ button {
   .dashboard-grid,
   .debt-detail-list,
   .debt-timeline,
+  .future-scenario-grid,
   .priority-copy,
   .priority-main,
   .forecast-grid {
