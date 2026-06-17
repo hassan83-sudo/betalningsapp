@@ -224,6 +224,7 @@ button {
 }
 
 .cases-panel,
+.priority-panel,
 .forecast-panel {
   grid-column: 1 / -1;
 }
@@ -341,6 +342,82 @@ button {
 .risk-low {
   color: #99f6e4;
   background: rgba(45, 212, 191, 0.13);
+}
+
+.priority-list {
+  display: grid;
+  gap: 12px;
+}
+
+.priority-card {
+  display: grid;
+  gap: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 20px;
+  padding: 14px;
+  background:
+    linear-gradient(145deg, rgba(34, 211, 238, 0.05), rgba(139, 92, 246, 0.06)),
+    rgba(2, 6, 23, 0.28);
+}
+
+.priority-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.priority-number {
+  border: 1px solid rgba(34, 211, 238, 0.26);
+  border-radius: 999px;
+  padding: 7px 10px;
+  color: #a5f3fc;
+  background: rgba(34, 211, 238, 0.08);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.priority-main,
+.priority-copy {
+  display: grid;
+  gap: 10px;
+}
+
+.priority-main {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.priority-copy {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.priority-main div,
+.priority-copy div {
+  min-width: 0;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 16px;
+  padding: 12px;
+  background: rgba(2, 6, 23, 0.24);
+}
+
+.priority-main span,
+.priority-copy span {
+  display: block;
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.priority-main strong {
+  display: block;
+  margin-top: 5px;
+  color: #f8fafc;
+}
+
+.priority-copy p {
+  margin: 6px 0 0;
+  color: #cbd5e1;
+  line-height: 1.5;
 }
 
 .detail-list {
@@ -833,6 +910,8 @@ button {
   .dashboard-grid,
   .debt-detail-list,
   .debt-timeline,
+  .priority-copy,
+  .priority-main,
   .forecast-grid {
     grid-template-columns: 1fr;
   }
@@ -906,6 +985,15 @@ button {
     gap: 14px;
     grid-template-columns: 1fr;
     padding: 16px;
+  }
+
+  .priority-card {
+    padding: 12px;
+  }
+
+  .priority-card-top {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .case-open-hint {

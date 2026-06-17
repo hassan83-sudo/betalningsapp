@@ -186,6 +186,54 @@ function makeActionPlan(item, cases) {
   };
 }
 
+function getPrioritizedCases(cases) {
+  const riskScore = { "Hög": 0, "Medel": 1, "Låg": 2 };
+
+  return [...cases].sort((a, b) => {
+    const riskDifference = riskScore[a.risk] - riskScore[b.risk];
+
+    if (riskDifference !== 0) {
+      return riskDifference;
+    }
+
+    const dueDateDifference = new Date(a.dueDate) - new Date(b.dueDate);
+
+    if (dueDateDifference !== 0) {
+      return dueDateDifference;
+    }
+
+    return b.amount - a.amount;
+  });
+}
+
+function makePriorityReason(item) {
+  if (item.risk === "Hög") {
+    return "Hög risk och aktivt inkassoläge gör att ärendet bör hanteras först.";
+  }
+
+  if (item.status === "Förfaller snart") {
+    return "Förfallodatumet ligger nära och ärendet kan snabbt bli dyrare.";
+  }
+
+  if (item.amount >= 5000) {
+    return "Beloppet är högt och påverkar total skuldbild mest.";
+  }
+
+  return "Lägre risk, men bör säkras med betalning eller plan innan nästa steg.";
+}
+
+function makePriorityConsequence(item) {
+  if (item.risk === "Hög") {
+    return "Ärendet kan gå vidare mot betalningsföreläggande om ingen kontakt tas.";
+  }
+
+  if (item.risk === "Medel") {
+    return "Avgifter kan fortsätta öka och ärendet kan bli svårare att förhandla.";
+  }
+
+  return "Skulden kan eskalera från låg risk till inkasso om förfallodatum missas.";
+}
+
 function makeForecast(cases, monthlyPayment) {
   const totalDebt = cases.reduce((sum, item) => sum + item.amount, 0);
   const monthlyFees = cases.reduce((sum, item) => sum + item.interestMonthly, 0);
@@ -255,6 +303,7 @@ export default function App() {
     () => makeForecast(collectionCases, Number(monthlyPayment) || 0),
     [monthlyPayment],
   );
+  const prioritizedCases = useMemo(() => getPrioritizedCases(collectionCases), []);
 
   const highRiskCases = collectionCases.filter((item) => item.risk === "Hög");
   const nextDueCase = [...collectionCases].sort(
@@ -546,6 +595,59 @@ export default function App() {
                     </span>
                     <small className="case-open-hint">Öppna detalj</small>
                   </button>
+                ))}
+              </div>
+            </article>
+
+            <article className="panel priority-panel" id="prioritering">
+              <div className="panel-heading">
+                <div>
+                  <p className="eyebrow">Prioriteringscenter</p>
+                  <h2>Vilka skulder ska hanteras först?</h2>
+                </div>
+                <span>Risk · datum · belopp</span>
+              </div>
+
+              <div className="priority-list">
+                {prioritizedCases.map((item, index) => (
+                  <article className="priority-card" key={item.id}>
+                    <div className="priority-card-top">
+                      <span className="priority-number">Prioritet {index + 1}</span>
+                      <span className={`risk-pill ${getRiskClass(item.risk)}`}>
+                        {item.risk}
+                      </span>
+                    </div>
+
+                    <div className="priority-main">
+                      <div>
+                        <span>Inkassobolag</span>
+                        <strong>{item.company}</strong>
+                      </div>
+                      <div>
+                        <span>Belopp</span>
+                        <strong>{formatCurrency(item.amount)}</strong>
+                      </div>
+                      <div>
+                        <span>Förfallodatum</span>
+                        <strong>{formatDate(item.dueDate)}</strong>
+                      </div>
+                    </div>
+
+                    <div className="priority-copy">
+                      <div>
+                        <span>Varför prioriteras den?</span>
+                        <p>{makePriorityReason(item)}</p>
+                      </div>
+                      <div>
+                        <span>Rekommenderad åtgärd</span>
+                        <p>{makeActionPlan(item, collectionCases).recommendation}</p>
+                      </div>
+                      <div>
+                        <span>Potentiell konsekvens</span>
+                        <p>{makePriorityConsequence(item)}</p>
+                      </div>
+                    </div>
+                  </article>
                 ))}
               </div>
             </article>
