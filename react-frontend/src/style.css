@@ -215,6 +215,7 @@ button {
   grid-template-columns: minmax(0, 1.3fr) minmax(320px, 0.7fr);
 }
 
+.cases-panel,
 .forecast-panel {
   grid-column: 1 / -1;
 }
@@ -333,6 +334,18 @@ button {
   margin: 0;
 }
 
+.debt-detail-view {
+  display: grid;
+}
+
+.debt-detail-panel {
+  width: min(920px, 100%);
+}
+
+.debt-detail-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .debt-detail-summary {
   display: grid;
   gap: 6px;
@@ -383,6 +396,17 @@ button {
   margin: 6px 0 0;
   color: #cbd5e1;
   line-height: 1.55;
+}
+
+.back-button {
+  width: fit-content;
+  margin-top: 16px;
+  border: 1px solid rgba(34, 211, 238, 0.28);
+  border-radius: 999px;
+  padding: 12px 16px;
+  color: #020617;
+  background: linear-gradient(135deg, #22d3ee, #8b5cf6);
+  font-weight: 900;
 }
 
 .payment-slider {
@@ -530,6 +554,7 @@ button {
 
   .stats-grid,
   .dashboard-grid,
+  .debt-detail-list,
   .forecast-grid {
     grid-template-columns: 1fr;
   }

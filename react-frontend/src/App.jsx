@@ -112,6 +112,7 @@ export default function App() {
   const [loggedIn, setLoggedIn] = useState(false);
   const [monthlyPayment, setMonthlyPayment] = useState(2500);
   const [selectedCaseId, setSelectedCaseId] = useState(collectionCases[0].id);
+  const [showDebtDetail, setShowDebtDetail] = useState(false);
 
   const selectedCase =
     collectionCases.find((item) => item.id === selectedCaseId) ?? collectionCases[0];
@@ -196,154 +197,181 @@ export default function App() {
           </article>
         </section>
 
-        <section className="dashboard-grid">
-          <article className="panel cases-panel" id="arenden">
-            <div className="panel-heading">
-              <div>
-                <p className="eyebrow">Inkassoärenden</p>
-                <h2>Alla skulder på ett ställe</h2>
+        {showDebtDetail ? (
+          <section className="debt-detail-view" id="skulddetalj">
+            <article className="panel debt-detail-panel">
+              <div className="panel-heading">
+                <div>
+                  <p className="eyebrow">Skulddetalj</p>
+                  <h2>{selectedCase.company}</h2>
+                </div>
+                <span>{selectedCase.id}</span>
               </div>
-              <span>{collectionCases.length} ärenden</span>
-            </div>
 
-            <div className="case-list">
-              {collectionCases.map((item) => (
-                <button
-                  className={item.id === selectedCase.id ? "case-row active" : "case-row"}
-                  key={item.id}
-                  type="button"
-                  onClick={() => setSelectedCaseId(item.id)}
-                >
-                  <span>
-                    <strong>{item.company}</strong>
-                    <small>{item.creditor}</small>
-                  </span>
-                  <span>
-                    <strong>{formatCurrency(item.amount)}</strong>
-                    <small>{item.status}</small>
-                  </span>
-                  <span>
-                    <strong>{formatDate(item.dueDate)}</strong>
-                    <small>Förfallodatum</small>
-                  </span>
-                  <span className={`risk-pill ${getRiskClass(item.risk)}`}>
-                    {item.risk}
-                  </span>
-                  <small className="case-open-hint">Öppna detalj</small>
-                </button>
-              ))}
-            </div>
-          </article>
+              <div className="debt-detail-summary">
+                <span>Totalt belopp</span>
+                <strong>{formatCurrency(selectedCase.amount)}</strong>
+                <small>
+                  Status: {selectedCase.status} · Risknivå {selectedCase.risk} ·{" "}
+                  Förfallodatum {formatDate(selectedCase.dueDate)}
+                </small>
+              </div>
 
-          <article className="panel detail-panel" id="skulddetalj">
-            <div className="panel-heading">
-              <div>
-                <p className="eyebrow">Skulddetalj</p>
-                <h2>{selectedCase.company}</h2>
-              </div>
-              <span>{selectedCase.id}</span>
-            </div>
+              <dl className="detail-list debt-detail-list">
+                <div>
+                  <dt>Inkassobolag</dt>
+                  <dd>{selectedCase.company}</dd>
+                </div>
+                <div>
+                  <dt>Ärendenummer</dt>
+                  <dd>{selectedCase.id}</dd>
+                </div>
+                <div>
+                  <dt>Ursprunglig fordringsägare</dt>
+                  <dd>{selectedCase.creditor}</dd>
+                </div>
+                <div>
+                  <dt>Huvudskuld</dt>
+                  <dd>{formatCurrency(selectedCase.originalDebt)}</dd>
+                </div>
+                <div>
+                  <dt>Inkassoavgift</dt>
+                  <dd>{formatCurrency(selectedCase.fees)}</dd>
+                </div>
+                <div>
+                  <dt>Ränta/avgifter</dt>
+                  <dd>{formatCurrency(selectedCase.interest)}</dd>
+                </div>
+                <div>
+                  <dt>Totalt belopp</dt>
+                  <dd>{formatCurrency(selectedCase.amount)}</dd>
+                </div>
+                <div>
+                  <dt>Status</dt>
+                  <dd>{selectedCase.status}</dd>
+                </div>
+                <div>
+                  <dt>Risknivå</dt>
+                  <dd>
+                    <span className={`risk-pill ${getRiskClass(selectedCase.risk)}`}>
+                      {selectedCase.risk}
+                    </span>
+                  </dd>
+                </div>
+                <div>
+                  <dt>Förfallodatum</dt>
+                  <dd>{formatDate(selectedCase.dueDate)}</dd>
+                </div>
+                <div>
+                  <dt>Föreslagen månadsbetalning</dt>
+                  <dd>{formatCurrency(selectedCase.suggestedPlan)} / mån</dd>
+                </div>
+              </dl>
 
-            <div className="debt-detail-summary">
-              <span>Totalt belopp</span>
-              <strong>{formatCurrency(selectedCase.amount)}</strong>
-              <small>
-                Status: {selectedCase.status} · Förfallodatum{" "}
-                {formatDate(selectedCase.dueDate)}
-              </small>
-            </div>
+              <div className="plan-note">
+                <strong>Avbetalningsförslag</strong>
+                <p>
+                  Kontakta inkassobolaget och föreslå en plan runt{" "}
+                  {formatCurrency(selectedCase.suggestedPlan)} per månad. Detta är
+                  bara demo och ingen juridisk rådgivning.
+                </p>
+              </div>
 
-            <dl className="detail-list">
-              <div>
-                <dt>Inkassobolag</dt>
-                <dd>{selectedCase.company}</dd>
+              <button
+                className="back-button"
+                type="button"
+                onClick={() => setShowDebtDetail(false)}
+              >
+                Tillbaka till översikt
+              </button>
+            </article>
+          </section>
+        ) : (
+          <section className="dashboard-grid">
+            <article className="panel cases-panel" id="arenden">
+              <div className="panel-heading">
+                <div>
+                  <p className="eyebrow">Inkassoärenden</p>
+                  <h2>Alla skulder på ett ställe</h2>
+                </div>
+                <span>{collectionCases.length} ärenden</span>
               </div>
-              <div>
-                <dt>Ursprunglig fordringsägare</dt>
-                <dd>{selectedCase.creditor}</dd>
-              </div>
-              <div>
-                <dt>Ärendenummer</dt>
-                <dd>{selectedCase.id}</dd>
-              </div>
-              <div>
-                <dt>Ursprunglig skuld</dt>
-                <dd>{formatCurrency(selectedCase.originalDebt)}</dd>
-              </div>
-              <div>
-                <dt>Avgifter</dt>
-                <dd>{formatCurrency(selectedCase.fees)}</dd>
-              </div>
-              <div>
-                <dt>Ränta</dt>
-                <dd>{formatCurrency(selectedCase.interest)}</dd>
-              </div>
-              <div>
-                <dt>Totalt belopp</dt>
-                <dd>{formatCurrency(selectedCase.amount)}</dd>
-              </div>
-              <div>
-                <dt>Status</dt>
-                <dd>{selectedCase.status}</dd>
-              </div>
-              <div>
-                <dt>Förfallodatum</dt>
-                <dd>{formatDate(selectedCase.dueDate)}</dd>
-              </div>
-            </dl>
 
-            <div className="plan-note">
-              <strong>Avbetalningsförslag</strong>
-              <p>
-                Kontakta inkassobolaget och föreslå en plan runt{" "}
-                {formatCurrency(selectedCase.suggestedPlan)} per månad. Detta är
-                bara demo och ingen juridisk rådgivning.
-              </p>
-            </div>
-          </article>
+              <div className="case-list">
+                {collectionCases.map((item) => (
+                  <button
+                    className={item.id === selectedCase.id ? "case-row active" : "case-row"}
+                    key={item.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedCaseId(item.id);
+                      setShowDebtDetail(true);
+                    }}
+                  >
+                    <span>
+                      <strong>{item.company}</strong>
+                      <small>{item.creditor}</small>
+                    </span>
+                    <span>
+                      <strong>{formatCurrency(item.amount)}</strong>
+                      <small>{item.status}</small>
+                    </span>
+                    <span>
+                      <strong>{formatDate(item.dueDate)}</strong>
+                      <small>Förfallodatum</small>
+                    </span>
+                    <span className={`risk-pill ${getRiskClass(item.risk)}`}>
+                      {item.risk}
+                    </span>
+                    <small className="case-open-hint">Öppna detalj</small>
+                  </button>
+                ))}
+              </div>
+            </article>
 
-          <article className="panel forecast-panel" id="prognos">
-            <div className="panel-heading">
-              <div>
-                <p className="eyebrow">Prognos</p>
-                <h2>Vad händer om du betalar X kr/mån?</h2>
+            <article className="panel forecast-panel" id="prognos">
+              <div className="panel-heading">
+                <div>
+                  <p className="eyebrow">Prognos</p>
+                  <h2>Vad händer om du betalar X kr/mån?</h2>
+                </div>
               </div>
-            </div>
 
-            <label className="payment-slider">
-              <span>Månadsbetalning: {formatCurrency(Number(monthlyPayment) || 0)}</span>
-              <input
-                type="range"
-                min="500"
-                max="12000"
-                step="250"
-                value={monthlyPayment}
-                onChange={(event) => setMonthlyPayment(Number(event.target.value))}
-              />
-            </label>
+              <label className="payment-slider">
+                <span>Månadsbetalning: {formatCurrency(Number(monthlyPayment) || 0)}</span>
+                <input
+                  type="range"
+                  min="500"
+                  max="12000"
+                  step="250"
+                  value={monthlyPayment}
+                  onChange={(event) => setMonthlyPayment(Number(event.target.value))}
+                />
+              </label>
 
-            <div className="forecast-grid">
-              <div>
-                <span>Avgifter/ränta i demo</span>
-                <strong>{formatCurrency(forecast.monthlyFees)} / mån</strong>
+              <div className="forecast-grid">
+                <div>
+                  <span>Avgifter/ränta i demo</span>
+                  <strong>{formatCurrency(forecast.monthlyFees)} / mån</strong>
+                </div>
+                <div>
+                  <span>Effektiv amortering</span>
+                  <strong>{formatCurrency(forecast.effectivePayment)} / mån</strong>
+                </div>
+                <div>
+                  <span>Beräknad skuldfri tid</span>
+                  <strong>
+                    {forecast.months ? `${forecast.months} månader` : "Betalning för låg"}
+                  </strong>
+                </div>
+                <div>
+                  <span>Skuld efter 6 månader</span>
+                  <strong>{formatCurrency(forecast.afterSixMonths)}</strong>
+                </div>
               </div>
-              <div>
-                <span>Effektiv amortering</span>
-                <strong>{formatCurrency(forecast.effectivePayment)} / mån</strong>
-              </div>
-              <div>
-                <span>Beräknad skuldfri tid</span>
-                <strong>
-                  {forecast.months ? `${forecast.months} månader` : "Betalning för låg"}
-                </strong>
-              </div>
-              <div>
-                <span>Skuld efter 6 månader</span>
-                <strong>{formatCurrency(forecast.afterSixMonths)}</strong>
-              </div>
-            </div>
-          </article>
-        </section>
+            </article>
+          </section>
+        )}
       </main>
     </div>
   );
