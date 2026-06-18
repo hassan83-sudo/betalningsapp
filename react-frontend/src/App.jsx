@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Login from "./pages/Login";
 
 const collectionCases = [
@@ -87,6 +87,16 @@ const collectionTimelineSteps = [
 
 const paymentOptions = [1000, 2000, 3000, 4000];
 
+const actionCenterStorageKey = "kronopay.actionCenter";
+
+const debtActions = [
+  "Ring inkassobolaget",
+  "Begär avbetalningsplan",
+  "Begär paus/anstånd",
+  "Kontrollera skuldens uppgifter",
+  "Markera som åtgärdad",
+];
+
 function formatCurrency(value) {
   return currencyFormatter.format(value);
 }
@@ -97,6 +107,39 @@ function formatDate(value) {
 
 function formatMonth(value) {
   return monthFormatter.format(value);
+}
+
+function getStoredActionCenter() {
+  try {
+    const storedValue = window.localStorage.getItem(actionCenterStorageKey);
+
+    return storedValue ? JSON.parse(storedValue) : {};
+  } catch {
+    return {};
+  }
+}
+
+function getActionStatus(caseActions = {}) {
+  const completedCount = debtActions.filter((action) => caseActions[action]?.done).length;
+
+  if (completedCount === debtActions.length) {
+    return "Åtgärdad";
+  }
+
+  if (completedCount > 0) {
+    return "Påbörjad";
+  }
+
+  return "Ej påbörjad";
+}
+
+function getLastUpdated(caseActions = {}) {
+  const latestDate = debtActions
+    .map((action) => caseActions[action]?.updatedAt)
+    .filter(Boolean)
+    .sort((a, b) => new Date(b) - new Date(a))[0];
+
+  return latestDate ? formatDate(latestDate) : "Inte uppdaterad";
 }
 
 function getRiskClass(risk) {
@@ -342,6 +385,7 @@ export default function App() {
   const [selectedCaseId, setSelectedCaseId] = useState(collectionCases[0].id);
   const [showDebtDetail, setShowDebtDetail] = useState(false);
   const [showAllMonths, setShowAllMonths] = useState(false);
+  const [actionCenter, setActionCenter] = useState(getStoredActionCenter);
 
   const selectedCase =
     collectionCases.find((item) => item.id === selectedCaseId) ?? collectionCases[0];
@@ -354,6 +398,12 @@ export default function App() {
   );
   const futureScenarios = useMemo(() => makeFutureScenarios(collectionCases), []);
   const prioritizedCases = useMemo(() => getPrioritizedCases(collectionCases), []);
+  const completedActionCount = collectionCases.reduce(
+    (sum, item) =>
+      sum + debtActions.filter((action) => actionCenter[item.id]?.[action]?.done).length,
+    0,
+  );
+  const totalActionCount = collectionCases.length * debtActions.length;
 
   const highRiskCases = collectionCases.filter((item) => item.risk === "Hög");
   const nextDueCase = [...collectionCases].sort(
@@ -364,8 +414,33 @@ export default function App() {
     0,
   );
 
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(actionCenterStorageKey, JSON.stringify(actionCenter));
+    } catch {
+      // Demo state should not break the app if localStorage is unavailable.
+    }
+  }, [actionCenter]);
+
   if (!loggedIn) {
     return <Login onLogin={() => setLoggedIn(true)} />;
+  }
+
+  function toggleDebtAction(caseId, action) {
+    setActionCenter((current) => {
+      const currentAction = current[caseId]?.[action];
+
+      return {
+        ...current,
+        [caseId]: {
+          ...current[caseId],
+          [action]: {
+            done: !currentAction?.done,
+            updatedAt: new Date().toISOString(),
+          },
+        },
+      };
+    });
   }
 
   return (
@@ -742,6 +817,99 @@ export default function App() {
                     </div>
                   </article>
                 ))}
+              </div>
+            </article>
+
+            <article className="panel action-center-panel" id="atgardscenter">
+              <div className="panel-heading">
+                <div>
+                  <p className="eyebrow">Åtgärdscenter</p>
+                  <h2>Praktiska nästa steg</h2>
+                </div>
+                <span>
+                  Åtgärder klara: {completedActionCount} av {totalActionCount}
+                </span>
+              </div>
+
+              <div className="action-progress">
+                <div>
+                  <span>Framsteg</span>
+                  <strong>
+                    {completedActionCount} / {totalActionCount}
+                  </strong>
+                </div>
+                <div className="action-progress-bar">
+                  <span
+                    style={{
+                      width: `${Math.round((completedActionCount / totalActionCount) * 100)}%`,
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="action-case-list">
+                {prioritizedCases.map((item, index) => {
+                  const caseActions = actionCenter[item.id] ?? {};
+                  const completedForCase = debtActions.filter(
+                    (action) => caseActions[action]?.done,
+                  ).length;
+                  const actionStatus = getActionStatus(caseActions);
+
+                  return (
+                    <article
+                      className={
+                        actionStatus === "Åtgärdad"
+                          ? "action-case-card completed"
+                          : "action-case-card"
+                      }
+                      key={item.id}
+                    >
+                      <div className="action-case-header">
+                        <div>
+                          <span className="priority-number">Prioritet {index + 1}</span>
+                          <h3>{item.company}</h3>
+                          <p>{formatCurrency(item.amount)} · {item.creditor}</p>
+                        </div>
+                        <span className={`action-status ${actionStatus === "Åtgärdad" ? "done" : ""}`}>
+                          {actionStatus}
+                        </span>
+                      </div>
+
+                      <div className="action-meta-grid">
+                        <div>
+                          <span>Senast uppdaterad</span>
+                          <strong>{getLastUpdated(caseActions)}</strong>
+                        </div>
+                        <div>
+                          <span>Prioritetsnivå</span>
+                          <strong>{index + 1} av {collectionCases.length}</strong>
+                        </div>
+                        <div>
+                          <span>Åtgärdsstatus</span>
+                          <strong>{completedForCase} av {debtActions.length} klara</strong>
+                        </div>
+                      </div>
+
+                      <div className="action-checklist">
+                        {debtActions.map((action) => {
+                          const isDone = Boolean(caseActions[action]?.done);
+
+                          return (
+                            <button
+                              className={isDone ? "action-check done" : "action-check"}
+                              key={action}
+                              type="button"
+                              onClick={() => toggleDebtAction(item.id, action)}
+                            >
+                              <span>{isDone ? "✓" : ""}</span>
+                              {action}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </article>
+                  );
+                })}
               </div>
             </article>
 
