@@ -89,6 +89,38 @@ const paymentOptions = [1000, 2000, 3000, 4000];
 
 const actionCenterStorageKey = "kronopay.actionCenter";
 const eventHistoryStorageKey = "kronopay.eventHistory";
+const documentStatusStorageKey = "kronopay.documentStatus";
+
+const debtDocuments = [
+  {
+    id: "document-inkasso-kr-24018",
+    caseId: "KR-24018",
+    date: "2026-06-18",
+    status: "Oläst",
+    type: "Inkassobrev",
+  },
+  {
+    id: "document-plan-kr-24027",
+    caseId: "KR-24027",
+    date: "2026-06-17",
+    status: "Oläst",
+    type: "Betalningsplan",
+  },
+  {
+    id: "document-confirmation-kr-24032",
+    caseId: "KR-24032",
+    date: "2026-06-16",
+    status: "Oläst",
+    type: "Bekräftelse",
+  },
+  {
+    id: "document-message-kr-24021",
+    caseId: "KR-24021",
+    date: "2026-06-15",
+    status: "Oläst",
+    type: "Meddelande",
+  },
+];
 
 const debtActions = [
   "Ring inkassobolaget",
@@ -174,6 +206,17 @@ function getStoredHistoryEvents() {
       : getDefaultHistoryEvents();
   } catch {
     return getDefaultHistoryEvents();
+  }
+}
+
+function getStoredDocumentStatus() {
+  try {
+    const storedValue = window.localStorage.getItem(documentStatusStorageKey);
+    const parsedValue = storedValue ? JSON.parse(storedValue) : null;
+
+    return parsedValue && typeof parsedValue === "object" ? parsedValue : {};
+  } catch {
+    return {};
   }
 }
 
@@ -474,6 +517,7 @@ export default function App() {
   const [actionCenter, setActionCenter] = useState(getStoredActionCenter);
   const [historyEvents, setHistoryEvents] = useState(getStoredHistoryEvents);
   const [historyFilter, setHistoryFilter] = useState("Alla");
+  const [documentStatus, setDocumentStatus] = useState(getStoredDocumentStatus);
 
   const selectedCase =
     collectionCases.find((item) => item.id === selectedCaseId) ?? collectionCases[0];
@@ -496,6 +540,9 @@ export default function App() {
     0,
   );
   const totalActionCount = collectionCases.length * debtActions.length;
+  const readDocumentCount = debtDocuments.filter(
+    (document) => documentStatus[document.id]?.read,
+  ).length;
 
   const highRiskCases = collectionCases.filter((item) => item.risk === "Hög");
   const nextDueCase = [...collectionCases].sort(
@@ -521,6 +568,14 @@ export default function App() {
       // Demo history should not break the app if localStorage is unavailable.
     }
   }, [historyEvents]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(documentStatusStorageKey, JSON.stringify(documentStatus));
+    } catch {
+      // Demo document status should not break the app if localStorage is unavailable.
+    }
+  }, [documentStatus]);
 
   if (!loggedIn) {
     return <Login onLogin={() => setLoggedIn(true)} />;
@@ -555,6 +610,16 @@ export default function App() {
       },
       ...current,
     ]);
+  }
+
+  function markDocumentAsRead(documentId) {
+    setDocumentStatus((current) => ({
+      ...current,
+      [documentId]: {
+        read: true,
+        updatedAt: new Date().toISOString(),
+      },
+    }));
   }
 
   return (
@@ -1067,6 +1132,89 @@ export default function App() {
                     </div>
                   </article>
                 ))}
+              </div>
+            </article>
+
+            <article className="panel documents-panel" id="dokument">
+              <div className="panel-heading">
+                <div>
+                  <p className="eyebrow">Dokument & Avtal</p>
+                  <h2>Samlad dokumentyta</h2>
+                </div>
+                <span>
+                  Lästa dokument: {readDocumentCount} av {debtDocuments.length}
+                </span>
+              </div>
+
+              <div className="documents-summary">
+                <strong>Inkassobrev, betalningsplaner, bekräftelser och meddelanden</strong>
+                <p>
+                  Demoarkiv för dokument kopplade till dina inkassoärenden. Lässtatus
+                  sparas lokalt i webbläsaren.
+                </p>
+              </div>
+
+              <div className="document-list">
+                {debtDocuments.map((document) => {
+                  const linkedCase = collectionCases.find(
+                    (item) => item.id === document.caseId,
+                  );
+                  const isRead = Boolean(documentStatus[document.id]?.read);
+                  const readableStatus = isRead ? "Läst" : document.status;
+
+                  return (
+                    <article
+                      className={isRead ? "document-card read" : "document-card"}
+                      key={document.id}
+                    >
+                      <div className="document-card-top">
+                        <span className="document-type">{document.type}</span>
+                        <span
+                          className={
+                            isRead ? "document-status read" : "document-status"
+                          }
+                        >
+                          {readableStatus}
+                        </span>
+                      </div>
+
+                      <dl className="document-meta">
+                        <div>
+                          <dt>Dokumenttyp</dt>
+                          <dd>{document.type}</dd>
+                        </div>
+                        <div>
+                          <dt>Datum</dt>
+                          <dd>{formatDate(document.date)}</dd>
+                        </div>
+                        <div>
+                          <dt>Kopplat inkassoärende</dt>
+                          <dd>
+                            {linkedCase
+                              ? `${linkedCase.company} · ${linkedCase.id}`
+                              : document.caseId}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt>Status</dt>
+                          <dd>{readableStatus}</dd>
+                        </div>
+                      </dl>
+
+                      <div className="document-actions">
+                        <button type="button">Öppna dokument (demo)</button>
+                        <button
+                          className={isRead ? "mark-read read" : "mark-read"}
+                          disabled={isRead}
+                          type="button"
+                          onClick={() => markDocumentAsRead(document.id)}
+                        >
+                          {isRead ? "Läst" : "Markera som läst"}
+                        </button>
+                      </div>
+                    </article>
+                  );
+                })}
               </div>
             </article>
 
