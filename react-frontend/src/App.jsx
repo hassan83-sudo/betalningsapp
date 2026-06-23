@@ -90,6 +90,7 @@ const paymentOptions = [1000, 2000, 3000, 4000];
 const actionCenterStorageKey = "kronopay.actionCenter";
 const eventHistoryStorageKey = "kronopay.eventHistory";
 const documentStatusStorageKey = "kronopay.documentStatus";
+const communicationStorageKey = "kronopay.communicationMessages";
 
 const debtDocuments = [
   {
@@ -131,6 +132,34 @@ const debtActions = [
 ];
 
 const historyFilters = ["Alla", "Betalningar", "Inkasso", "AI", "Åtgärder"];
+
+const communicationQuickReplies = [
+  {
+    body: "Jag vill diskutera en betalningsplan som passar min ekonomi.",
+    subject: "Begär avbetalningsplan",
+  },
+  {
+    body: "Jag vill begära anstånd och få mer tid innan nästa steg.",
+    subject: "Begär anstånd",
+  },
+  {
+    body: "Jag vill kontrollera uppgifterna i ärendet och få mer information om skulden.",
+    subject: "Fråga om skuld",
+  },
+  {
+    body: "Jag vill bekräfta att betalning är gjord eller planerad.",
+    subject: "Bekräfta betalning",
+  },
+];
+
+function getDefaultCommunicationDraft() {
+  return {
+    body: "Jag vill diskutera en betalningsplan.",
+    caseId: collectionCases[0].id,
+    company: collectionCases[0].company,
+    subject: "Begär avbetalningsplan",
+  };
+}
 
 function formatCurrency(value) {
   return currencyFormatter.format(value);
@@ -217,6 +246,31 @@ function getStoredDocumentStatus() {
     return parsedValue && typeof parsedValue === "object" ? parsedValue : {};
   } catch {
     return {};
+  }
+}
+
+function getDefaultCommunicationMessages() {
+  return [
+    {
+      body: "Jag vill diskutera en betalningsplan.",
+      caseId: "KR-24018",
+      company: "Svea Inkasso",
+      createdAt: makeHistoryDate(0, 10, 45),
+      id: "message-demo-payment-plan",
+      status: "Skickat",
+      subject: "Begär avbetalningsplan",
+    },
+  ];
+}
+
+function getStoredCommunicationMessages() {
+  try {
+    const storedValue = window.localStorage.getItem(communicationStorageKey);
+    const parsedValue = storedValue ? JSON.parse(storedValue) : null;
+
+    return Array.isArray(parsedValue) ? parsedValue : getDefaultCommunicationMessages();
+  } catch {
+    return getDefaultCommunicationMessages();
   }
 }
 
@@ -518,6 +572,12 @@ export default function App() {
   const [historyEvents, setHistoryEvents] = useState(getStoredHistoryEvents);
   const [historyFilter, setHistoryFilter] = useState("Alla");
   const [documentStatus, setDocumentStatus] = useState(getStoredDocumentStatus);
+  const [communicationMessages, setCommunicationMessages] = useState(
+    getStoredCommunicationMessages,
+  );
+  const [communicationDraft, setCommunicationDraft] = useState(
+    getDefaultCommunicationDraft,
+  );
 
   const selectedCase =
     collectionCases.find((item) => item.id === selectedCaseId) ?? collectionCases[0];
@@ -542,6 +602,9 @@ export default function App() {
   const totalActionCount = collectionCases.length * debtActions.length;
   const readDocumentCount = debtDocuments.filter(
     (document) => documentStatus[document.id]?.read,
+  ).length;
+  const sentMessageCount = communicationMessages.filter(
+    (message) => message.status === "Skickat",
   ).length;
 
   const highRiskCases = collectionCases.filter((item) => item.risk === "Hög");
@@ -576,6 +639,17 @@ export default function App() {
       // Demo document status should not break the app if localStorage is unavailable.
     }
   }, [documentStatus]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        communicationStorageKey,
+        JSON.stringify(communicationMessages),
+      );
+    } catch {
+      // Demo communication should not break the app if localStorage is unavailable.
+    }
+  }, [communicationMessages]);
 
   if (!loggedIn) {
     return <Login onLogin={() => setLoggedIn(true)} />;
@@ -619,6 +693,63 @@ export default function App() {
         read: true,
         updatedAt: new Date().toISOString(),
       },
+    }));
+  }
+
+  function updateCommunicationDraft(field, value) {
+    if (field === "caseId") {
+      const matchingCase =
+        collectionCases.find((item) => item.id === value) ?? collectionCases[0];
+
+      setCommunicationDraft((current) => ({
+        ...current,
+        caseId: matchingCase.id,
+        company: matchingCase.company,
+      }));
+      return;
+    }
+
+    setCommunicationDraft((current) => ({
+      ...current,
+      [field]: value,
+    }));
+  }
+
+  function applyCommunicationQuickReply(reply) {
+    setCommunicationDraft((current) => ({
+      ...current,
+      body: reply.body,
+      subject: reply.subject,
+    }));
+  }
+
+  function sendCommunicationMessage(event) {
+    event.preventDefault();
+
+    const subject = communicationDraft.subject.trim();
+    const body = communicationDraft.body.trim();
+
+    if (!subject || !body) {
+      return;
+    }
+
+    setCommunicationMessages((current) => [
+      {
+        body,
+        caseId: communicationDraft.caseId,
+        company: communicationDraft.company,
+        createdAt: new Date().toISOString(),
+        id: `message-${Date.now()}`,
+        status: "Skickat",
+        subject,
+      },
+      ...current,
+    ]);
+
+    setCommunicationDraft((current) => ({
+      ...current,
+      body: "",
+      subject: "",
     }));
   }
 
@@ -1215,6 +1346,121 @@ export default function App() {
                     </article>
                   );
                 })}
+              </div>
+            </article>
+
+            <article className="panel communication-panel" id="kommunikation">
+              <div className="panel-heading">
+                <div>
+                  <p className="eyebrow">Kommunikation</p>
+                  <h2>Kontakta inkassobolag</h2>
+                </div>
+                <span>Antal skickade meddelanden: {sentMessageCount}</span>
+              </div>
+
+              <div className="communication-layout">
+                <form className="communication-form" onSubmit={sendCommunicationMessage}>
+                  <div className="quick-reply-grid" aria-label="Färdiga snabbval">
+                    {communicationQuickReplies.map((reply) => (
+                      <button
+                        key={reply.subject}
+                        type="button"
+                        onClick={() => applyCommunicationQuickReply(reply)}
+                      >
+                        {reply.subject}
+                      </button>
+                    ))}
+                  </div>
+
+                  <label>
+                    <span>Till</span>
+                    <select
+                      value={communicationDraft.caseId}
+                      onChange={(event) =>
+                        updateCommunicationDraft("caseId", event.target.value)
+                      }
+                    >
+                      {collectionCases.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.company}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label>
+                    <span>Ärende</span>
+                    <select
+                      value={communicationDraft.caseId}
+                      onChange={(event) =>
+                        updateCommunicationDraft("caseId", event.target.value)
+                      }
+                    >
+                      {collectionCases.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.id} · {item.creditor}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label>
+                    <span>Ämne</span>
+                    <input
+                      value={communicationDraft.subject}
+                      placeholder="Begär avbetalningsplan"
+                      onChange={(event) =>
+                        updateCommunicationDraft("subject", event.target.value)
+                      }
+                    />
+                  </label>
+
+                  <label>
+                    <span>Meddelande</span>
+                    <textarea
+                      rows="4"
+                      value={communicationDraft.body}
+                      placeholder="Jag vill diskutera en betalningsplan."
+                      onChange={(event) =>
+                        updateCommunicationDraft("body", event.target.value)
+                      }
+                    />
+                  </label>
+
+                  <button className="communication-submit" type="submit">
+                    Skicka demo-meddelande
+                  </button>
+                </form>
+
+                <div className="message-list">
+                  {communicationMessages.map((message) => (
+                    <article className="message-card" key={message.id}>
+                      <div className="message-card-top">
+                        <strong>{message.subject}</strong>
+                        <span>{message.status}</span>
+                      </div>
+                      <p>{message.body}</p>
+                      <dl className="message-meta">
+                        <div>
+                          <dt>Datum</dt>
+                          <dd>{formatDate(message.createdAt)}</dd>
+                        </div>
+                        <div>
+                          <dt>Inkassobolag</dt>
+                          <dd>{message.company}</dd>
+                        </div>
+                        <div>
+                          <dt>Ärende</dt>
+                          <dd>{message.caseId}</dd>
+                        </div>
+                        <div>
+                          <dt>Status</dt>
+                          <dd>{message.status}</dd>
+                        </div>
+                      </dl>
+                    </article>
+                  ))}
+                </div>
               </div>
             </article>
 
