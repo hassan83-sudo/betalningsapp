@@ -91,6 +91,7 @@ const actionCenterStorageKey = "kronopay.actionCenter";
 const eventHistoryStorageKey = "kronopay.eventHistory";
 const documentStatusStorageKey = "kronopay.documentStatus";
 const communicationStorageKey = "kronopay.communicationMessages";
+const notificationStatusStorageKey = "kronopay.notificationStatus";
 
 const debtDocuments = [
   {
@@ -192,6 +193,15 @@ function makeHistoryDate(daysAgo, hours, minutes) {
   return date.toISOString();
 }
 
+function makeReminderDate(daysFromNow, hours = 9, minutes = 0) {
+  const date = new Date();
+
+  date.setDate(date.getDate() + daysFromNow);
+  date.setHours(hours, minutes, 0, 0);
+
+  return date.toISOString();
+}
+
 function getDefaultHistoryEvents() {
   return [
     {
@@ -271,6 +281,54 @@ function getStoredCommunicationMessages() {
     return Array.isArray(parsedValue) ? parsedValue : getDefaultCommunicationMessages();
   } catch {
     return getDefaultCommunicationMessages();
+  }
+}
+
+function getDemoNotifications() {
+  return [
+    {
+      caseId: "KR-24032",
+      date: makeReminderDate(5, 9, 0),
+      id: "notification-lowell-due",
+      priority: "Hög",
+      title: "Lowell förfaller om 5 dagar",
+      type: "Kommande förfallodatum",
+    },
+    {
+      caseId: "KR-24018",
+      date: makeReminderDate(7, 10, 30),
+      id: "notification-payment-plan",
+      priority: "Medel",
+      title: "Avbetalning ska betalas nästa vecka",
+      type: "Betalningsplan",
+    },
+    {
+      caseId: "KR-24018",
+      date: makeReminderDate(2, 14, 0),
+      id: "notification-follow-up",
+      priority: "Medel",
+      title: "Följ upp svar från inkassobolag",
+      type: "Viktig åtgärd",
+    },
+    {
+      caseId: "KR-24027",
+      date: makeReminderDate(10, 8, 45),
+      id: "notification-intrum-review",
+      priority: "Låg",
+      title: "Kontrollera uppgifter i ärendet",
+      type: "Inkassoärende",
+    },
+  ];
+}
+
+function getStoredNotificationStatus() {
+  try {
+    const storedValue = window.localStorage.getItem(notificationStatusStorageKey);
+    const parsedValue = storedValue ? JSON.parse(storedValue) : null;
+
+    return parsedValue && typeof parsedValue === "object" ? parsedValue : {};
+  } catch {
+    return {};
   }
 }
 
@@ -578,6 +636,9 @@ export default function App() {
   const [communicationDraft, setCommunicationDraft] = useState(
     getDefaultCommunicationDraft,
   );
+  const [notificationStatus, setNotificationStatus] = useState(
+    getStoredNotificationStatus,
+  );
 
   const selectedCase =
     collectionCases.find((item) => item.id === selectedCaseId) ?? collectionCases[0];
@@ -605,6 +666,10 @@ export default function App() {
   ).length;
   const sentMessageCount = communicationMessages.filter(
     (message) => message.status === "Skickat",
+  ).length;
+  const notifications = useMemo(() => getDemoNotifications(), []);
+  const openNotificationCount = notifications.filter(
+    (notification) => !notificationStatus[notification.id]?.done,
   ).length;
 
   const highRiskCases = collectionCases.filter((item) => item.risk === "Hög");
@@ -650,6 +715,17 @@ export default function App() {
       // Demo communication should not break the app if localStorage is unavailable.
     }
   }, [communicationMessages]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        notificationStatusStorageKey,
+        JSON.stringify(notificationStatus),
+      );
+    } catch {
+      // Demo notification status should not break the app if localStorage is unavailable.
+    }
+  }, [notificationStatus]);
 
   if (!loggedIn) {
     return <Login onLogin={() => setLoggedIn(true)} />;
@@ -750,6 +826,17 @@ export default function App() {
       ...current,
       body: "",
       subject: "",
+    }));
+  }
+
+  function updateNotificationStatus(notificationId, field) {
+    setNotificationStatus((current) => ({
+      ...current,
+      [notificationId]: {
+        ...current[notificationId],
+        [field]: true,
+        updatedAt: new Date().toISOString(),
+      },
     }));
   }
 
@@ -1461,6 +1548,88 @@ export default function App() {
                     </article>
                   ))}
                 </div>
+              </div>
+            </article>
+
+            <article className="panel notifications-panel" id="notiser">
+              <div className="panel-heading">
+                <div>
+                  <p className="eyebrow">Påminnelser & Notiser</p>
+                  <h2>Viktiga datum att hålla koll på</h2>
+                </div>
+                <span>{openNotificationCount} öppna notiser kvar</span>
+              </div>
+
+              <div className="notification-list">
+                {notifications.map((notification) => {
+                  const linkedCase = collectionCases.find(
+                    (item) => item.id === notification.caseId,
+                  );
+                  const status = notificationStatus[notification.id] ?? {};
+                  const isRead = Boolean(status.read);
+                  const isDone = Boolean(status.done);
+
+                  return (
+                    <article
+                      className={isDone ? "notification-card done" : "notification-card"}
+                      key={notification.id}
+                    >
+                      <div className="notification-card-top">
+                        <div>
+                          <strong>{notification.title}</strong>
+                          <span>{notification.type}</span>
+                        </div>
+                        <span
+                          className={`notification-priority ${notification.priority.toLowerCase()}`}
+                        >
+                          {notification.priority}
+                        </span>
+                      </div>
+
+                      <dl className="notification-meta">
+                        <div>
+                          <dt>Datum</dt>
+                          <dd>{formatDate(notification.date)}</dd>
+                        </div>
+                        <div>
+                          <dt>Inkassoärende</dt>
+                          <dd>
+                            {linkedCase
+                              ? `${linkedCase.company} · ${linkedCase.id}`
+                              : notification.caseId}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt>Status</dt>
+                          <dd>{isDone ? "Klar" : isRead ? "Läst" : "Oläst"}</dd>
+                        </div>
+                        <div>
+                          <dt>Prioritet</dt>
+                          <dd>{notification.priority}</dd>
+                        </div>
+                      </dl>
+
+                      <div className="notification-actions">
+                        <button
+                          className={isRead ? "notification-action done" : "notification-action"}
+                          disabled={isRead}
+                          type="button"
+                          onClick={() => updateNotificationStatus(notification.id, "read")}
+                        >
+                          {isRead ? "Läst" : "Markera som läst"}
+                        </button>
+                        <button
+                          className={isDone ? "notification-action done" : "notification-action primary"}
+                          disabled={isDone}
+                          type="button"
+                          onClick={() => updateNotificationStatus(notification.id, "done")}
+                        >
+                          {isDone ? "Klar" : "Markera som klar"}
+                        </button>
+                      </div>
+                    </article>
+                  );
+                })}
               </div>
             </article>
 
