@@ -65,3 +65,7 @@ react-frontend/src/pages/WebhookLogs.jsx
 react-frontend/src/pages/WhiteLabel.jsx
 
 react-frontend/src/pages/*.jsx
+
+react-frontend/src/InvoiceTemplates.jsx
+
+react-frontend/src/InvoiceTemplates.jsx
