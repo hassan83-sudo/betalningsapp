@@ -93,6 +93,7 @@ const documentStatusStorageKey = "kronopay.documentStatus";
 const communicationStorageKey = "kronopay.communicationMessages";
 const notificationStatusStorageKey = "kronopay.notificationStatus";
 const financialProfileStorageKey = "kronopay.financialProfile";
+const appSettingsStorageKey = "kronopay.appSettings";
 
 const financialFields = [
   { key: "netIncome", label: "Nettoinkomst" },
@@ -103,6 +104,17 @@ const financialFields = [
   { key: "food", label: "Mat" },
   { key: "transport", label: "Transport" },
   { key: "otherCosts", label: "Övriga kostnader" },
+];
+
+const settingsSections = [
+  "Profil",
+  "Säkerhet",
+  "Notiser",
+  "Betalningar",
+  "Integritet",
+  "Språk",
+  "Tema",
+  "Om KronoPay",
 ];
 
 const debtDocuments = [
@@ -417,6 +429,57 @@ function makeFinancialRecommendation(overview, suggestedPlan) {
   )} per månad. Det är lägre än den föreslagna totalplanen, så kontakta bolagen och föreslå en nivå du faktiskt kan hålla.`;
 }
 
+function getDefaultAppSettings() {
+  return {
+    currency: "SEK",
+    darkMode: true,
+    emailNotifications: true,
+    language: "sv",
+    pushNotifications: false,
+    smsReminders: true,
+    standardMonthlyPayment: 2500,
+  };
+}
+
+function sanitizeAppSettings(settings) {
+  const defaults = getDefaultAppSettings();
+  const standardMonthlyPayment = Number(settings?.standardMonthlyPayment);
+
+  return {
+    currency: settings?.currency === "EUR" ? "EUR" : defaults.currency,
+    darkMode:
+      typeof settings?.darkMode === "boolean" ? settings.darkMode : defaults.darkMode,
+    emailNotifications:
+      typeof settings?.emailNotifications === "boolean"
+        ? settings.emailNotifications
+        : defaults.emailNotifications,
+    language: settings?.language === "en" ? "en" : defaults.language,
+    pushNotifications:
+      typeof settings?.pushNotifications === "boolean"
+        ? settings.pushNotifications
+        : defaults.pushNotifications,
+    smsReminders:
+      typeof settings?.smsReminders === "boolean"
+        ? settings.smsReminders
+        : defaults.smsReminders,
+    standardMonthlyPayment:
+      Number.isFinite(standardMonthlyPayment) && standardMonthlyPayment >= 0
+        ? standardMonthlyPayment
+        : defaults.standardMonthlyPayment,
+  };
+}
+
+function getStoredAppSettings() {
+  try {
+    const storedValue = window.localStorage.getItem(appSettingsStorageKey);
+    const parsedValue = storedValue ? JSON.parse(storedValue) : null;
+
+    return sanitizeAppSettings(parsedValue);
+  } catch {
+    return getDefaultAppSettings();
+  }
+}
+
 function getActionStatus(caseActions = {}) {
   const completedCount = debtActions.filter((action) => caseActions[action]?.done).length;
 
@@ -707,6 +770,7 @@ function makeFutureScenarios(cases) {
 
 export default function App() {
   const [loggedIn, setLoggedIn] = useState(false);
+  const [activePage, setActivePage] = useState("home");
   const [monthlyPayment, setMonthlyPayment] = useState(2500);
   const [selectedCaseId, setSelectedCaseId] = useState(collectionCases[0].id);
   const [showDebtDetail, setShowDebtDetail] = useState(false);
@@ -727,6 +791,7 @@ export default function App() {
   const [notificationStatus, setNotificationStatus] = useState(
     getStoredNotificationStatus,
   );
+  const [appSettings, setAppSettings] = useState(getStoredAppSettings);
 
   const selectedCase =
     collectionCases.find((item) => item.id === selectedCaseId) ?? collectionCases[0];
@@ -833,6 +898,14 @@ export default function App() {
       // Demo financial overview should not break the app if localStorage is unavailable.
     }
   }, [financialProfile]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(appSettingsStorageKey, JSON.stringify(appSettings));
+    } catch {
+      // Demo settings should not break the app if localStorage is unavailable.
+    }
+  }, [appSettings]);
 
   if (!loggedIn) {
     return <Login onLogin={() => setLoggedIn(true)} />;
@@ -965,6 +1038,22 @@ export default function App() {
     setShowFinancialModal(false);
   }
 
+  function navigateHome(sectionId) {
+    setActivePage("home");
+    window.setTimeout(() => {
+      document.querySelector(sectionId)?.scrollIntoView({ behavior: "smooth" });
+    }, 0);
+  }
+
+  function updateAppSetting(field, value) {
+    setAppSettings((current) =>
+      sanitizeAppSettings({
+        ...current,
+        [field]: value,
+      }),
+    );
+  }
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -977,10 +1066,25 @@ export default function App() {
         </div>
 
         <nav className="sidebar-nav" aria-label="Huvudnavigation">
-          <a href="#oversikt">Översikt</a>
-          <a href="#arenden">Inkassoärenden</a>
-          <a href="#skulddetalj">Skulddetalj</a>
-          <a href="#prognos">Prognos</a>
+          <button type="button" onClick={() => navigateHome("#oversikt")}>
+            Översikt
+          </button>
+          <button type="button" onClick={() => navigateHome("#arenden")}>
+            Inkassoärenden
+          </button>
+          <button type="button" onClick={() => navigateHome("#skulddetalj")}>
+            Skulddetalj
+          </button>
+          <button type="button" onClick={() => navigateHome("#prognos")}>
+            Prognos
+          </button>
+          <button
+            className={activePage === "settings" ? "active" : ""}
+            type="button"
+            onClick={() => setActivePage("settings")}
+          >
+            Inställningar
+          </button>
         </nav>
 
         <button className="logout-button" type="button" onClick={() => setLoggedIn(false)}>
@@ -989,6 +1093,194 @@ export default function App() {
       </aside>
 
       <main className="main-content">
+        {activePage === "settings" ? (
+          <section className="settings-page" id="installningar">
+            <div className="settings-hero panel">
+              <div>
+                <p className="eyebrow">Inställningar</p>
+                <h1>Kontrollcenter för KronoPay</h1>
+                <p>
+                  Hantera profil, säkerhet, notiser, betalningar och appens lokala
+                  demo-inställningar. Alla val sparas i localStorage.
+                </p>
+              </div>
+              <span>Demo-konto</span>
+            </div>
+
+            <div className="settings-section-list" aria-label="Inställningssektioner">
+              {settingsSections.map((section) => (
+                <span key={section}>{section}</span>
+              ))}
+            </div>
+
+            <div className="settings-grid">
+              <article className="settings-card">
+                <div>
+                  <p className="eyebrow">Profil</p>
+                  <h2>Demoanvändare</h2>
+                </div>
+                <dl className="settings-details">
+                  <div>
+                    <dt>Status</dt>
+                    <dd>Demo-inloggning aktiv</dd>
+                  </div>
+                  <div>
+                    <dt>Konto</dt>
+                    <dd>Lokalt testkonto</dd>
+                  </div>
+                </dl>
+              </article>
+
+              <article className="settings-card">
+                <div>
+                  <p className="eyebrow">Säkerhet</p>
+                  <h2>BankID förbereds</h2>
+                </div>
+                <p>Säker inloggning och personliga konton kommer i en senare version.</p>
+              </article>
+
+              <article className="settings-card">
+                <div>
+                  <p className="eyebrow">Tema</p>
+                  <h2>Utseende</h2>
+                </div>
+                <label className="settings-toggle">
+                  <span>
+                    <strong>Mörkt läge</strong>
+                    <small>Premium dark mode är standard i KronoPay.</small>
+                  </span>
+                  <input
+                    checked={appSettings.darkMode}
+                    type="checkbox"
+                    onChange={(event) =>
+                      updateAppSetting("darkMode", event.target.checked)
+                    }
+                  />
+                </label>
+              </article>
+
+              <article className="settings-card">
+                <div>
+                  <p className="eyebrow">Notiser</p>
+                  <h2>Påminnelser</h2>
+                </div>
+                <div className="settings-stack">
+                  <label className="settings-toggle">
+                    <span>
+                      <strong>Pushnotiser</strong>
+                      <small>För framtida webbläsarnotiser.</small>
+                    </span>
+                    <input
+                      checked={appSettings.pushNotifications}
+                      type="checkbox"
+                      onChange={(event) =>
+                        updateAppSetting("pushNotifications", event.target.checked)
+                      }
+                    />
+                  </label>
+                  <label className="settings-toggle">
+                    <span>
+                      <strong>E-postnotiser</strong>
+                      <small>Sammanfattningar och viktiga händelser.</small>
+                    </span>
+                    <input
+                      checked={appSettings.emailNotifications}
+                      type="checkbox"
+                      onChange={(event) =>
+                        updateAppSetting("emailNotifications", event.target.checked)
+                      }
+                    />
+                  </label>
+                  <label className="settings-toggle">
+                    <span>
+                      <strong>SMS-påminnelser</strong>
+                      <small>Påminnelser inför förfallodatum.</small>
+                    </span>
+                    <input
+                      checked={appSettings.smsReminders}
+                      type="checkbox"
+                      onChange={(event) =>
+                        updateAppSetting("smsReminders", event.target.checked)
+                      }
+                    />
+                  </label>
+                </div>
+              </article>
+
+              <article className="settings-card">
+                <div>
+                  <p className="eyebrow">Betalningar</p>
+                  <h2>Standardvärden</h2>
+                </div>
+                <label className="settings-field">
+                  <span>Standard månadsbetalning</span>
+                  <input
+                    min="0"
+                    step="100"
+                    type="number"
+                    value={appSettings.standardMonthlyPayment}
+                    onChange={(event) =>
+                      updateAppSetting(
+                        "standardMonthlyPayment",
+                        Number(event.target.value) || 0,
+                      )
+                    }
+                  />
+                </label>
+                <label className="settings-field">
+                  <span>Valuta</span>
+                  <select
+                    value={appSettings.currency}
+                    onChange={(event) => updateAppSetting("currency", event.target.value)}
+                  >
+                    <option value="SEK">SEK</option>
+                    <option value="EUR">EUR</option>
+                  </select>
+                </label>
+              </article>
+
+              <article className="settings-card">
+                <div>
+                  <p className="eyebrow">Språk</p>
+                  <h2>Appspråk</h2>
+                </div>
+                <label className="settings-field">
+                  <span>Språk</span>
+                  <select
+                    value={appSettings.language}
+                    onChange={(event) => updateAppSetting("language", event.target.value)}
+                  >
+                    <option value="sv">Svenska</option>
+                    <option value="en">Engelska</option>
+                  </select>
+                </label>
+              </article>
+
+              <article className="settings-card">
+                <div>
+                  <p className="eyebrow">Integritet</p>
+                  <h2>Lokal demo-data</h2>
+                </div>
+                <p>
+                  Den här MVP:n använder localStorage. Riktiga konton, krypterad
+                  användardata och BankID kommer senare.
+                </p>
+              </article>
+
+              <article className="settings-card">
+                <div>
+                  <p className="eyebrow">Om KronoPay</p>
+                  <h2>Inkasso- och skuldkoll</h2>
+                </div>
+                <p>
+                  KronoPay är i MVP-läge och visar hur skulder, planer, dokument och
+                  kommunikation kan samlas på ett ställe.
+                </p>
+              </article>
+            </div>
+          </section>
+        ) : (
+          <>
         <section className="panel account-readiness-panel" id="konton">
           <div className="panel-heading">
             <div>
@@ -2026,6 +2318,8 @@ export default function App() {
               </form>
             </section>
           </div>
+        )}
+          </>
         )}
       </main>
     </div>
