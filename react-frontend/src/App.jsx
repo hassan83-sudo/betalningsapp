@@ -92,6 +92,18 @@ const eventHistoryStorageKey = "kronopay.eventHistory";
 const documentStatusStorageKey = "kronopay.documentStatus";
 const communicationStorageKey = "kronopay.communicationMessages";
 const notificationStatusStorageKey = "kronopay.notificationStatus";
+const financialProfileStorageKey = "kronopay.financialProfile";
+
+const financialFields = [
+  { key: "netIncome", label: "Nettoinkomst" },
+  { key: "rent", label: "Hyra" },
+  { key: "electricity", label: "El" },
+  { key: "phone", label: "Telefon" },
+  { key: "internet", label: "Internet" },
+  { key: "food", label: "Mat" },
+  { key: "transport", label: "Transport" },
+  { key: "otherCosts", label: "Övriga kostnader" },
+];
 
 const debtDocuments = [
   {
@@ -330,6 +342,79 @@ function getStoredNotificationStatus() {
   } catch {
     return {};
   }
+}
+
+function getDefaultFinancialProfile() {
+  return {
+    netIncome: 26000,
+    rent: 8500,
+    electricity: 650,
+    phone: 349,
+    internet: 399,
+    food: 4200,
+    transport: 950,
+    otherCosts: 1800,
+  };
+}
+
+function sanitizeFinancialProfile(profile) {
+  const defaults = getDefaultFinancialProfile();
+
+  return financialFields.reduce((result, field) => {
+    const value = Number(profile?.[field.key]);
+
+    return {
+      ...result,
+      [field.key]: Number.isFinite(value) && value >= 0 ? value : defaults[field.key],
+    };
+  }, {});
+}
+
+function getStoredFinancialProfile() {
+  try {
+    const storedValue = window.localStorage.getItem(financialProfileStorageKey);
+    const parsedValue = storedValue ? JSON.parse(storedValue) : null;
+
+    return sanitizeFinancialProfile(parsedValue);
+  } catch {
+    return getDefaultFinancialProfile();
+  }
+}
+
+function calculateFinancialOverview(profile) {
+  const monthlyExpenses =
+    profile.rent +
+    profile.electricity +
+    profile.phone +
+    profile.internet +
+    profile.food +
+    profile.transport +
+    profile.otherCosts;
+  const remainingMoney = Math.max(0, profile.netIncome - monthlyExpenses);
+  const recommendedDebtPayment = Math.max(
+    0,
+    Math.round((remainingMoney * 0.35) / 100) * 100,
+  );
+
+  return {
+    monthlyExpenses,
+    recommendedDebtPayment,
+    remainingMoney,
+  };
+}
+
+function makeFinancialRecommendation(overview, suggestedPlan) {
+  if (overview.remainingMoney <= 0) {
+    return "AI-rekommendation: Fokusera först på nödvändiga kostnader och kontakta inkassobolagen för att begära anstånd eller en mycket låg plan.";
+  }
+
+  if (overview.recommendedDebtPayment >= suggestedPlan) {
+    return "AI-rekommendation: Din uppskattade betalningsförmåga täcker den föreslagna månadsplanen. Prioritera ärenden med hög risk och närmast förfallodatum.";
+  }
+
+  return `AI-rekommendation: En rimlig start är cirka ${formatCurrency(
+    overview.recommendedDebtPayment,
+  )} per månad. Det är lägre än den föreslagna totalplanen, så kontakta bolagen och föreslå en nivå du faktiskt kan hålla.`;
 }
 
 function getActionStatus(caseActions = {}) {
@@ -626,6 +711,9 @@ export default function App() {
   const [selectedCaseId, setSelectedCaseId] = useState(collectionCases[0].id);
   const [showDebtDetail, setShowDebtDetail] = useState(false);
   const [showAllMonths, setShowAllMonths] = useState(false);
+  const [showFinancialModal, setShowFinancialModal] = useState(false);
+  const [financialProfile, setFinancialProfile] = useState(getStoredFinancialProfile);
+  const [financialDraft, setFinancialDraft] = useState(getStoredFinancialProfile);
   const [actionCenter, setActionCenter] = useState(getStoredActionCenter);
   const [historyEvents, setHistoryEvents] = useState(getStoredHistoryEvents);
   const [historyFilter, setHistoryFilter] = useState("Alla");
@@ -680,6 +768,14 @@ export default function App() {
     (sum, item) => sum + item.suggestedPlan,
     0,
   );
+  const financialOverview = calculateFinancialOverview(financialProfile);
+  const financialRecommendation = makeFinancialRecommendation(
+    financialOverview,
+    totalSuggestedPlan,
+  );
+  const financialDraftOverview = calculateFinancialOverview(
+    sanitizeFinancialProfile(financialDraft),
+  );
 
   useEffect(() => {
     try {
@@ -726,6 +822,17 @@ export default function App() {
       // Demo notification status should not break the app if localStorage is unavailable.
     }
   }, [notificationStatus]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        financialProfileStorageKey,
+        JSON.stringify(financialProfile),
+      );
+    } catch {
+      // Demo financial overview should not break the app if localStorage is unavailable.
+    }
+  }, [financialProfile]);
 
   if (!loggedIn) {
     return <Login onLogin={() => setLoggedIn(true)} />;
@@ -840,6 +947,24 @@ export default function App() {
     }));
   }
 
+  function openFinancialModal() {
+    setFinancialDraft(financialProfile);
+    setShowFinancialModal(true);
+  }
+
+  function updateFinancialDraft(field, value) {
+    setFinancialDraft((current) => ({
+      ...current,
+      [field]: Math.max(0, Number(value) || 0),
+    }));
+  }
+
+  function saveFinancialProfile(event) {
+    event.preventDefault();
+    setFinancialProfile(sanitizeFinancialProfile(financialDraft));
+    setShowFinancialModal(false);
+  }
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -900,6 +1025,45 @@ export default function App() {
             <strong>{formatCurrency(totalSuggestedPlan)}</strong>
             <small>Summerat från demoärenden</small>
           </article>
+        </section>
+
+        <section className="panel financial-overview-panel" id="ekonomi">
+          <div className="panel-heading">
+            <div>
+              <p className="eyebrow">Ekonomisk översikt</p>
+              <h2>Din betalningsförmåga</h2>
+            </div>
+            <button className="edit-finance-button" type="button" onClick={openFinancialModal}>
+              Redigera
+            </button>
+          </div>
+
+          <div className="financial-card-grid">
+            <article>
+              <span>Disponibel inkomst</span>
+              <strong>{formatCurrency(financialProfile.netIncome)}</strong>
+              <small>Nettoinkomst per månad</small>
+            </article>
+            <article>
+              <span>Månadens utgifter</span>
+              <strong>{formatCurrency(financialOverview.monthlyExpenses)}</strong>
+              <small>Fasta och vardagliga kostnader</small>
+            </article>
+            <article>
+              <span>Pengar kvar efter fasta kostnader</span>
+              <strong>{formatCurrency(financialOverview.remainingMoney)}</strong>
+              <small>Utrymme innan skuldbetalning</small>
+            </article>
+            <article>
+              <span>Rekommenderad betalningsförmåga</span>
+              <strong>{formatCurrency(financialOverview.recommendedDebtPayment)}</strong>
+              <small>Förslag mot skulder per månad</small>
+            </article>
+          </div>
+
+          <div className="financial-ai-note">
+            <strong>{financialRecommendation}</strong>
+          </div>
         </section>
 
         {showDebtDetail ? (
@@ -1750,6 +1914,76 @@ export default function App() {
               </div>
             </article>
           </section>
+        )}
+
+        {showFinancialModal && (
+          <div className="modal-backdrop" role="presentation">
+            <section
+              aria-labelledby="financial-modal-title"
+              className="financial-modal"
+              role="dialog"
+              aria-modal="true"
+            >
+              <div className="panel-heading">
+                <div>
+                  <p className="eyebrow">Redigera ekonomi</p>
+                  <h2 id="financial-modal-title">Månadsbudget</h2>
+                </div>
+                <button
+                  className="modal-close-button"
+                  type="button"
+                  onClick={() => setShowFinancialModal(false)}
+                >
+                  Stäng
+                </button>
+              </div>
+
+              <form className="financial-form" onSubmit={saveFinancialProfile}>
+                <div className="financial-form-grid">
+                  {financialFields.map((field) => (
+                    <label key={field.key}>
+                      <span>{field.label}</span>
+                      <input
+                        min="0"
+                        step="100"
+                        type="number"
+                        value={financialDraft[field.key]}
+                        onChange={(event) =>
+                          updateFinancialDraft(field.key, event.target.value)
+                        }
+                      />
+                    </label>
+                  ))}
+                </div>
+
+                <div className="financial-modal-summary">
+                  <div>
+                    <span>Totala utgifter</span>
+                    <strong>{formatCurrency(financialDraftOverview.monthlyExpenses)}</strong>
+                  </div>
+                  <div>
+                    <span>Pengar kvar</span>
+                    <strong>{formatCurrency(financialDraftOverview.remainingMoney)}</strong>
+                  </div>
+                  <div>
+                    <span>Rekommenderad betalning mot skulder</span>
+                    <strong>
+                      {formatCurrency(financialDraftOverview.recommendedDebtPayment)}
+                    </strong>
+                  </div>
+                </div>
+
+                <div className="modal-actions">
+                  <button type="button" onClick={() => setShowFinancialModal(false)}>
+                    Avbryt
+                  </button>
+                  <button className="modal-save-button" type="submit">
+                    Spara ekonomi
+                  </button>
+                </div>
+              </form>
+            </section>
+          </div>
         )}
       </main>
     </div>
