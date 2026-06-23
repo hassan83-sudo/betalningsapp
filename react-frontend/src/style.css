@@ -210,6 +210,96 @@ button {
   font-size: 24px;
 }
 
+.account-readiness-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.account-mode-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.account-mode-card,
+.roadmap-card {
+  min-width: 0;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 20px;
+  padding: 16px;
+  background:
+    linear-gradient(145deg, rgba(34, 211, 238, 0.06), rgba(139, 92, 246, 0.06)),
+    rgba(2, 6, 23, 0.3);
+}
+
+.account-mode-card.active {
+  border-color: rgba(34, 211, 238, 0.34);
+  background:
+    radial-gradient(circle at top right, rgba(34, 211, 238, 0.14), transparent 46%),
+    rgba(2, 6, 23, 0.34);
+}
+
+.account-mode-card span,
+.account-mode-card p,
+.account-mode-card li {
+  color: #cbd5e1;
+}
+
+.account-mode-card span {
+  display: block;
+  margin-bottom: 7px;
+  color: #67e8f9;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.account-mode-card strong,
+.roadmap-card strong {
+  display: block;
+  color: #f8fafc;
+  font-size: 20px;
+}
+
+.account-mode-card p {
+  margin: 8px 0 0;
+  line-height: 1.55;
+}
+
+.account-mode-card ul {
+  display: grid;
+  gap: 7px;
+  margin: 10px 0 0;
+  padding-left: 18px;
+}
+
+.roadmap-card {
+  display: grid;
+  gap: 12px;
+}
+
+.roadmap-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.roadmap-grid span {
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 999px;
+  padding: 9px 11px;
+  color: #cbd5e1;
+  background: rgba(15, 23, 42, 0.44);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.roadmap-grid span.done {
+  border-color: rgba(34, 197, 94, 0.28);
+  color: #bbf7d0;
+  background: rgba(34, 197, 94, 0.11);
+}
+
 .stats-grid,
 .dashboard-grid,
 .forecast-grid {
@@ -1770,6 +1860,8 @@ button {
   }
 
   .stats-grid,
+  .account-mode-grid,
+  .roadmap-grid,
   .dashboard-grid,
   .financial-card-grid,
   .forecast-grid {
@@ -1807,6 +1899,8 @@ button {
   }
 
   .stats-grid,
+  .account-mode-grid,
+  .roadmap-grid,
   .action-plan-grid,
   .action-checklist,
   .action-meta-grid,

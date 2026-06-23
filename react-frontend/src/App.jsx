@@ -989,6 +989,48 @@ export default function App() {
       </aside>
 
       <main className="main-content">
+        <section className="panel account-readiness-panel" id="konton">
+          <div className="panel-heading">
+            <div>
+              <p className="eyebrow">BankID & Konton</p>
+              <h2>Kontoläge och framtida inloggning</h2>
+            </div>
+            <span>Status: Under utveckling</span>
+          </div>
+
+          <div className="account-mode-grid">
+            <article className="account-mode-card active">
+              <span>Demo-läge</span>
+              <strong>Demo-inloggning aktiv</strong>
+              <p>Alla funktioner använder demodata tills riktiga integrationer kopplas in.</p>
+            </article>
+
+            <article className="account-mode-card">
+              <span>BankID</span>
+              <strong>BankID kommer snart</strong>
+              <ul>
+                <li>Säker inloggning</li>
+                <li>Krypterad data</li>
+                <li>Personlig skuldöversikt</li>
+                <li>Automatisk hämtning av skulder framtida</li>
+              </ul>
+            </article>
+          </div>
+
+          <div className="roadmap-card">
+            <strong>Roadmap</strong>
+            <div className="roadmap-grid">
+              <span className="done">✓ Demo</span>
+              <span className="done">✓ Ekonomisk översikt</span>
+              <span className="done">✓ AI-planering</span>
+              <span>○ BankID</span>
+              <span>○ Inkassokopplingar</span>
+              <span>○ Kronofogden</span>
+              <span>○ Automatiska betalningsplaner</span>
+            </div>
+          </div>
+        </section>
+
         <section className="hero-card" id="oversikt">
           <div>
             <p className="eyebrow">Demo-inloggning aktiv</p>
