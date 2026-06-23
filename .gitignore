@@ -39,3 +39,27 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# old SaaS pages
+react-frontend/src/pages/AIInsights.jsx
+react-frontend/src/pages/AIReports.jsx
+react-frontend/src/pages/API*
+react-frontend/src/pages/AccessControl.jsx
+react-frontend/src/pages/ActivityTimeline.jsx
+react-frontend/src/pages/AdvancedFilters.jsx
+react-frontend/src/pages/AuditTrail.jsx
+react-frontend/src/pages/AutoBilling.jsx
+react-frontend/src/pages/AutomationCenter.jsx
+react-frontend/src/pages/BankConnections.jsx
+react-frontend/src/pages/BillingAutomation.jsx
+react-frontend/src/pages/BudgetPlanner.jsx
+react-frontend/src/pages/BusinessInsights.jsx
+react-frontend/src/pages/Client*
+react-frontend/src/pages/Customer*
+react-frontend/src/pages/Invoice*
+react-frontend/src/pages/Revenue*
+react-frontend/src/pages/Subscription*
+react-frontend/src/pages/System*
+react-frontend/src/pages/Team*
+react-frontend/src/pages/WebhookLogs.jsx
+react-frontend/src/pages/WhiteLabel.jsx

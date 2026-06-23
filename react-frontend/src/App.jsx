@@ -88,6 +88,7 @@ const collectionTimelineSteps = [
 const paymentOptions = [1000, 2000, 3000, 4000];
 
 const actionCenterStorageKey = "kronopay.actionCenter";
+const eventHistoryStorageKey = "kronopay.eventHistory";
 
 const debtActions = [
   "Ring inkassobolaget",
@@ -96,6 +97,8 @@ const debtActions = [
   "Kontrollera skuldens uppgifter",
   "Markera som åtgärdad",
 ];
+
+const historyFilters = ["Alla", "Betalningar", "Inkasso", "AI", "Åtgärder"];
 
 function formatCurrency(value) {
   return currencyFormatter.format(value);
@@ -116,6 +119,61 @@ function getStoredActionCenter() {
     return storedValue ? JSON.parse(storedValue) : {};
   } catch {
     return {};
+  }
+}
+
+function makeHistoryDate(daysAgo, hours, minutes) {
+  const date = new Date();
+
+  date.setDate(date.getDate() - daysAgo);
+  date.setHours(hours, minutes, 0, 0);
+
+  return date.toISOString();
+}
+
+function getDefaultHistoryEvents() {
+  return [
+    {
+      id: "history-ai-plan",
+      createdAt: makeHistoryDate(0, 9, 20),
+      description: "AI Handlingsplan skapades för högst prioriterade ärenden.",
+      statusIcon: "AI",
+      type: "AI",
+    },
+    {
+      id: "history-plan-updated",
+      createdAt: makeHistoryDate(1, 16, 10),
+      description: "Avbetalningsplan uppdaterades i Min betalningsplan.",
+      statusIcon: "✓",
+      type: "Åtgärder",
+    },
+    {
+      id: "history-new-case",
+      createdAt: makeHistoryDate(7, 11, 35),
+      description: "Nytt inkassoärende registrerades från Svea Inkasso.",
+      statusIcon: "!",
+      type: "Inkasso",
+    },
+    {
+      id: "history-payment",
+      createdAt: makeHistoryDate(8, 14, 5),
+      description: "Betalning registrerad på ett aktivt ärende.",
+      statusIcon: "kr",
+      type: "Betalningar",
+    },
+  ];
+}
+
+function getStoredHistoryEvents() {
+  try {
+    const storedValue = window.localStorage.getItem(eventHistoryStorageKey);
+    const parsedValue = storedValue ? JSON.parse(storedValue) : null;
+
+    return Array.isArray(parsedValue) && parsedValue.length > 0
+      ? parsedValue
+      : getDefaultHistoryEvents();
+  } catch {
+    return getDefaultHistoryEvents();
   }
 }
 
@@ -140,6 +198,34 @@ function getLastUpdated(caseActions = {}) {
     .sort((a, b) => new Date(b) - new Date(a))[0];
 
   return latestDate ? formatDate(latestDate) : "Inte uppdaterad";
+}
+
+function formatHistoryDate(value) {
+  const eventDate = new Date(value);
+  const today = new Date();
+  const yesterday = new Date();
+
+  today.setHours(0, 0, 0, 0);
+  yesterday.setDate(yesterday.getDate() - 1);
+  yesterday.setHours(0, 0, 0, 0);
+  eventDate.setHours(0, 0, 0, 0);
+
+  if (eventDate.getTime() === today.getTime()) {
+    return "Idag";
+  }
+
+  if (eventDate.getTime() === yesterday.getTime()) {
+    return "Igår";
+  }
+
+  return formatDate(value);
+}
+
+function formatHistoryTime(value) {
+  return new Intl.DateTimeFormat("sv-SE", {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
 }
 
 function getRiskClass(risk) {
@@ -386,6 +472,8 @@ export default function App() {
   const [showDebtDetail, setShowDebtDetail] = useState(false);
   const [showAllMonths, setShowAllMonths] = useState(false);
   const [actionCenter, setActionCenter] = useState(getStoredActionCenter);
+  const [historyEvents, setHistoryEvents] = useState(getStoredHistoryEvents);
+  const [historyFilter, setHistoryFilter] = useState("Alla");
 
   const selectedCase =
     collectionCases.find((item) => item.id === selectedCaseId) ?? collectionCases[0];
@@ -398,6 +486,10 @@ export default function App() {
   );
   const futureScenarios = useMemo(() => makeFutureScenarios(collectionCases), []);
   const prioritizedCases = useMemo(() => getPrioritizedCases(collectionCases), []);
+  const filteredHistoryEvents =
+    historyFilter === "Alla"
+      ? historyEvents
+      : historyEvents.filter((event) => event.type === historyFilter);
   const completedActionCount = collectionCases.reduce(
     (sum, item) =>
       sum + debtActions.filter((action) => actionCenter[item.id]?.[action]?.done).length,
@@ -422,25 +514,47 @@ export default function App() {
     }
   }, [actionCenter]);
 
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(eventHistoryStorageKey, JSON.stringify(historyEvents));
+    } catch {
+      // Demo history should not break the app if localStorage is unavailable.
+    }
+  }, [historyEvents]);
+
   if (!loggedIn) {
     return <Login onLogin={() => setLoggedIn(true)} />;
   }
 
   function toggleDebtAction(caseId, action) {
-    setActionCenter((current) => {
-      const currentAction = current[caseId]?.[action];
+    const matchingCase = collectionCases.find((item) => item.id === caseId);
+    const nextDone = !actionCenter[caseId]?.[action]?.done;
 
+    setActionCenter((current) => {
       return {
         ...current,
         [caseId]: {
           ...current[caseId],
           [action]: {
-            done: !currentAction?.done,
+            done: nextDone,
             updatedAt: new Date().toISOString(),
           },
         },
       };
     });
+
+    setHistoryEvents((current) => [
+      {
+        id: `history-${caseId}-${action}-${Date.now()}`,
+        createdAt: new Date().toISOString(),
+        description: `${action} ${
+          nextDone ? "markerades som klar" : "markerades som ej klar"
+        }${matchingCase ? ` för ${matchingCase.company}` : ""}.`,
+        statusIcon: "✓",
+        type: "Åtgärder",
+      },
+      ...current,
+    ]);
   }
 
   return (
@@ -910,6 +1024,49 @@ export default function App() {
                     </article>
                   );
                 })}
+              </div>
+            </article>
+
+            <article className="panel history-panel" id="historik">
+              <div className="panel-heading">
+                <div>
+                  <p className="eyebrow">Historik & Händelser</p>
+                  <h2>All aktivitet i KronoPay</h2>
+                </div>
+                <span>{filteredHistoryEvents.length} händelser</span>
+              </div>
+
+              <div className="history-filters" aria-label="Filtrera historik">
+                {historyFilters.map((filter) => (
+                  <button
+                    className={
+                      historyFilter === filter
+                        ? "history-filter active"
+                        : "history-filter"
+                    }
+                    key={filter}
+                    type="button"
+                    onClick={() => setHistoryFilter(filter)}
+                  >
+                    {filter}
+                  </button>
+                ))}
+              </div>
+
+              <div className="history-timeline">
+                {filteredHistoryEvents.map((event) => (
+                  <article className="history-event" key={event.id}>
+                    <div className="history-icon">{event.statusIcon}</div>
+                    <div className="history-date">
+                      <strong>{formatHistoryDate(event.createdAt)}</strong>
+                      <span>{formatHistoryTime(event.createdAt)}</span>
+                    </div>
+                    <div className="history-copy">
+                      <span>{event.type}</span>
+                      <p>{event.description}</p>
+                    </div>
+                  </article>
+                ))}
               </div>
             </article>
 

@@ -227,6 +227,7 @@ button {
 .priority-panel,
 .future-panel,
 .action-center-panel,
+.history-panel,
 .forecast-panel {
   grid-column: 1 / -1;
 }
@@ -642,6 +643,85 @@ button {
 .action-check.done span {
   border-color: rgba(34, 197, 94, 0.35);
   background: #22c55e;
+}
+
+.history-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.history-filter {
+  width: auto;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 999px;
+  padding: 9px 12px;
+  color: #cbd5e1;
+  background: rgba(2, 6, 23, 0.28);
+  font-weight: 850;
+}
+
+.history-filter.active,
+.history-filter:hover {
+  border-color: rgba(34, 211, 238, 0.42);
+  color: #020617;
+  background: linear-gradient(135deg, #22d3ee, #8b5cf6);
+}
+
+.history-timeline {
+  display: grid;
+  gap: 10px;
+}
+
+.history-event {
+  display: grid;
+  grid-template-columns: 46px 120px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 18px;
+  padding: 12px;
+  background:
+    linear-gradient(145deg, rgba(34, 211, 238, 0.05), rgba(139, 92, 246, 0.05)),
+    rgba(2, 6, 23, 0.28);
+}
+
+.history-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border: 1px solid rgba(34, 211, 238, 0.22);
+  border-radius: 14px;
+  color: #a5f3fc;
+  background: rgba(34, 211, 238, 0.08);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.history-date strong,
+.history-date span,
+.history-copy span,
+.history-copy p {
+  display: block;
+}
+
+.history-date strong {
+  color: #f8fafc;
+}
+
+.history-date span,
+.history-copy span {
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.history-copy p {
+  margin: 5px 0 0;
+  color: #cbd5e1;
+  line-height: 1.5;
 }
 
 .detail-list {
@@ -1212,6 +1292,19 @@ button {
     gap: 14px;
     grid-template-columns: 1fr;
     padding: 16px;
+  }
+
+  .history-event {
+    grid-template-columns: 42px minmax(0, 1fr);
+    align-items: flex-start;
+  }
+
+  .history-copy {
+    grid-column: 2;
+  }
+
+  .history-filter {
+    flex: 1 1 calc(50% - 8px);
   }
 
   .priority-card {
