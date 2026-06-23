@@ -13,6 +13,7 @@ const PDFDocument = require("pdfkit");
 const nodemailer = require("nodemailer");
 
 const User = require("./models/User");
+const authRoutes = require("./routes/authRoutes");
 
 const app = express();
 
@@ -168,6 +169,8 @@ app.use(
 app.get("/", (req, res) => {
   res.json({ message: "KronoPay backend körs" });
 });
+
+app.use("/api/auth", authRoutes);
 
 app.post("/api/register", async (req, res) => {
   try {
