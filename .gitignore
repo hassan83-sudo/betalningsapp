@@ -63,3 +63,5 @@ react-frontend/src/pages/System*
 react-frontend/src/pages/Team*
 react-frontend/src/pages/WebhookLogs.jsx
 react-frontend/src/pages/WhiteLabel.jsx
+
+react-frontend/src/pages/*.jsx
