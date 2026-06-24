@@ -14,14 +14,15 @@ const nodemailer = require("nodemailer");
 
 const User = require("./models/User");
 const authRoutes = require("./routes/authRoutes");
+const connectDatabase = require("./config/database");
 
 const app = express();
 
 const JWT_SECRET = process.env.JWT_SECRET || "SECRET_KEY";
-const MONGO_URI =
-  process.env.MONGO_URI || "mongodb://127.0.0.1:27017/betalningsapp";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+const stripe = process.env.STRIPE_SECRET_KEY
+  ? new Stripe(process.env.STRIPE_SECRET_KEY)
+  : null;
 
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST,
@@ -33,10 +34,7 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-mongoose
-  .connect(MONGO_URI)
-  .then(() => console.log("MongoDB connected"))
-  .catch((err) => console.error("MongoDB error:", err));
+connectDatabase();
 
 const invoiceSchema = new mongoose.Schema(
   {
@@ -442,6 +440,12 @@ app.delete("/api/invoices/:id", async (req, res) => {
 
 app.post("/api/invoices/:id/create-checkout-session", async (req, res) => {
   try {
+    if (!stripe) {
+      return res.status(503).json({
+        message: "Stripe är inte konfigurerat",
+      });
+    }
+
     const invoice = await Invoice.findById(req.params.id);
 
     if (!invoice) {
