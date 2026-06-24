@@ -1,14 +1,6 @@
-const DEMO_AUTH_TOKEN = process.env.DEMO_AUTH_TOKEN || "kronopay-demo-token";
+const jwt = require("jsonwebtoken");
 
-const demoUser = {
-  id: "demo-user",
-  name: "Demoanvändare",
-  email: "demo@kronopay.se",
-  personalNumber: "YYYYMMDD-XXXX",
-  language: "sv",
-  currency: "SEK",
-  createdAt: "2026-06-23T00:00:00.000Z",
-};
+const JWT_SECRET = process.env.JWT_SECRET || "secret123";
 
 function getTokenFromRequest(req) {
   const authHeader = req.headers.authorization || "";
@@ -20,21 +12,25 @@ function getTokenFromRequest(req) {
   return req.headers["x-demo-token"];
 }
 
-function requireDemoAuth(req, res, next) {
+function requireJwtAuth(req, res, next) {
   const token = getTokenFromRequest(req);
 
-  if (token !== DEMO_AUTH_TOKEN) {
+  if (!token) {
     return res.status(401).json({
       message: "Autentisering krävs",
     });
   }
 
-  req.user = demoUser;
-  next();
+  try {
+    req.auth = jwt.verify(token, JWT_SECRET);
+    next();
+  } catch {
+    return res.status(401).json({
+      message: "Ogiltig eller utgången inloggning",
+    });
+  }
 }
 
 module.exports = {
-  DEMO_AUTH_TOKEN,
-  demoUser,
-  requireDemoAuth,
+  requireJwtAuth,
 };

@@ -1,7 +1,8 @@
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const { DEMO_AUTH_TOKEN, demoUser } = require("../middleware/demoAuth");
+
+const JWT_SECRET = process.env.JWT_SECRET || "secret123";
 
 function toPublicUser(user) {
   return {
@@ -41,7 +42,7 @@ exports.register = async (req, res) => {
     res.json({
       message: "User created",
       user: toPublicUser(user),
-      userId: user._id
+      userId: user._id,
     });
   } catch (error) {
     console.log(error);
@@ -51,32 +52,27 @@ exports.register = async (req, res) => {
 
 exports.login = async (req, res) => {
   try {
-    const { email, password, loginMethod } = req.body;
+    const { email, password } = req.body;
 
-    if (loginMethod === "demo" || !email || !password) {
-      return res.json({
-        authMode: "demo",
-        message: "Demo-inloggning aktiv",
-        token: DEMO_AUTH_TOKEN,
-        user: demoUser,
-      });
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email och lösenord krävs" });
     }
 
     const user = await User.findOne({ email });
 
     if (!user) {
-      return res.status(400).json({ error: "User not found" });
+      return res.status(401).json({ error: "Fel email eller lösenord" });
     }
 
     const valid = await bcrypt.compare(password, user.password);
 
     if (!valid) {
-      return res.status(400).json({ error: "Wrong password" });
+      return res.status(401).json({ error: "Fel email eller lösenord" });
     }
 
     const token = jwt.sign(
-      { userId: user._id },
-      process.env.JWT_SECRET || "secret123",
+      { userId: user._id.toString() },
+      JWT_SECRET,
       { expiresIn: "7d" }
     );
 
@@ -85,7 +81,7 @@ exports.login = async (req, res) => {
       message: "Login success",
       token,
       user: toPublicUser(user),
-      userId: user._id
+      userId: user._id,
     });
   } catch (error) {
     console.log(error);
@@ -95,13 +91,19 @@ exports.login = async (req, res) => {
 
 exports.logout = async (req, res) => {
   res.json({
-    message: "Utloggad från demo-session",
+    message: "Utloggad",
   });
 };
 
 exports.me = async (req, res) => {
+  const user = await User.findById(req.auth?.userId);
+
+  if (!user) {
+    return res.status(401).json({ error: "Ogiltig inloggning" });
+  }
+
   res.json({
-    authMode: "demo",
-    user: req.user,
+    authMode: "password",
+    user: toPublicUser(user),
   });
 };

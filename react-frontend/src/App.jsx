@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import api from "./api";
 import Login from "./pages/Login";
 
 const collectionCases = [
@@ -770,6 +771,7 @@ function makeFutureScenarios(cases) {
 
 export default function App() {
   const [loggedIn, setLoggedIn] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
   const [activePage, setActivePage] = useState("home");
   const [monthlyPayment, setMonthlyPayment] = useState(2500);
   const [selectedCaseId, setSelectedCaseId] = useState(collectionCases[0].id);
@@ -843,6 +845,39 @@ export default function App() {
   );
 
   useEffect(() => {
+    let isCurrent = true;
+
+    async function checkStoredToken() {
+      const token = window.localStorage.getItem("token");
+
+      if (!token) {
+        setAuthChecked(true);
+        return;
+      }
+
+      try {
+        await api.get("/api/auth/me");
+
+        if (isCurrent) {
+          setLoggedIn(true);
+        }
+      } catch {
+        window.localStorage.removeItem("token");
+      } finally {
+        if (isCurrent) {
+          setAuthChecked(true);
+        }
+      }
+    }
+
+    checkStoredToken();
+
+    return () => {
+      isCurrent = false;
+    };
+  }, []);
+
+  useEffect(() => {
     try {
       window.localStorage.setItem(actionCenterStorageKey, JSON.stringify(actionCenter));
     } catch {
@@ -907,8 +942,38 @@ export default function App() {
     }
   }, [appSettings]);
 
+  async function handleLogin({ email, password }) {
+    try {
+      const response = await api.post("/api/auth/login", { email, password });
+      const token = response.data?.token;
+
+      if (!token) {
+        throw new Error("Backend returnerade ingen JWT");
+      }
+
+      window.localStorage.setItem("token", token);
+      setLoggedIn(true);
+    } catch (error) {
+      const message =
+        error.response?.data?.error ||
+        error.response?.data?.message ||
+        "Felaktig inloggning";
+
+      throw new Error(message, { cause: error });
+    }
+  }
+
+  function handleLogout() {
+    window.localStorage.removeItem("token");
+    setLoggedIn(false);
+  }
+
+  if (!authChecked) {
+    return null;
+  }
+
   if (!loggedIn) {
-    return <Login onLogin={() => setLoggedIn(true)} />;
+    return <Login onLogin={handleLogin} />;
   }
 
   function toggleDebtAction(caseId, action) {
@@ -1087,7 +1152,7 @@ export default function App() {
           </button>
         </nav>
 
-        <button className="logout-button" type="button" onClick={() => setLoggedIn(false)}>
+        <button className="logout-button" type="button" onClick={handleLogout}>
           Logga ut
         </button>
       </aside>
